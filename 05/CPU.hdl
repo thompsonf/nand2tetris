@@ -40,4 +40,32 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+    // load A?
+    Not(in=instruction[15], out=is-a);
+    Or(a=is-a, b=instruction[5], out=load-a);
+    // load D?
+    And(a=instruction[15], b=instruction[4], out=load-d);
+    // load M?
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    DRegister(in=alu, load=load-d, out=d-reg);
+
+    Mux16(a=alu, b=instruction, sel=is-a, out=a-reg-in);
+    ARegister(in=a-reg-in, load=load-a, out=a-reg, out[0..14]=addressM);
+
+    Mux16(a=a-reg, b=inM, sel=instruction[12], out=a-or-m);
+    ALU(x=d-reg, y=a-or-m, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outM, out=alu, zr=is-zero, ng=is-negative);
+
+    // jump instructions
+    Or(a=is-zero, b=is-negative, out=is-not-positive);
+    Not(in=is-not-positive, out=is-positive);
+    And(a=is-negative, b=instruction[2], out=jump-negative);
+    And(a=is-zero, b=instruction[1], out=jump-zero);
+    And(a=is-positive, b=instruction[0], out=jump-positive);
+    Or(a=jump-negative, b=jump-positive, out=jump-non-zero);
+    Or(a=jump-non-zero, b=jump-zero, out=jump-any);
+    And(a=jump-any, b=instruction[15], out=jump);
+    Not(in=jump, out=not-jump);
+
+    PC(in=a-reg, load=jump, inc=not-jump, reset=reset, out[0..14]=pc);
 }
