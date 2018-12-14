@@ -2,8 +2,8 @@ import Data.Char
 import Data.List
 import qualified Data.Map.Strict as M
 import Data.Maybe
-import ML.Parse (parseFile)
-import ML.Types
+import ASM.Parse (parseFile)
+import ASM.Types
 import System.Environment
 import Text.Printf
 

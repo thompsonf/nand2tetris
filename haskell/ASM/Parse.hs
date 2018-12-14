@@ -1,4 +1,4 @@
-module ML.Parse
+module ASM.Parse
 ( parseLine
 , parseLineOrError
 , parseFile
@@ -7,7 +7,7 @@ module ML.Parse
 import Data.Char
 import Data.List
 import Data.Maybe
-import ML.Types
+import ASM.Types
 import Text.Read (readMaybe)
 
 -- SYMBOL

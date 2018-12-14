@@ -1,6 +1,6 @@
-module ML.Pretty (prettyLine) where
+module ASM.Pretty (prettyLine) where
 
-import Types
+import ASM.Types
 
 prettyAInst :: AInst -> String
 prettyAInst (AInstSym sym) = '@':sym

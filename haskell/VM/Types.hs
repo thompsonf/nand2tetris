@@ -1,7 +1,4 @@
-module VM.Types 
-( Segment (..)
-, 
-) where
+module VM.Types  where
 
 data Logical = Add
   | Sub
@@ -12,6 +9,7 @@ data Logical = Add
   | And
   | Or
   | Not
+  deriving Show
 
 data Segment = Local
   | Argument
@@ -21,19 +19,11 @@ data Segment = Local
   | Static
   | Temp
   | Pointer
+  deriving Show
 
 data Memory = Pop Segment Int
   | Push Segment Int
+  deriving Show
 
 data Command = CL Logical | CM Memory
-
-parseSegment :: String -> Segment
-parseSegment "local" = Local
-parseSegment "argument" = Argument
-parseSegment "this" = This
-parseSegment "that" = That
-parseSegment "constant" = Constant
-parseSegment "static" = Static
-parseSegment "pointer" = Pointer
-
-parseCommand :: String ->
+  deriving Show
