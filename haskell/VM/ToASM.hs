@@ -30,9 +30,11 @@ pop =
   , "M=D" ]
 
 -- sets D = RAM[A + int]
+prePushPtr :: Int -> [String]
 prePushPtr int = ["D=A", "@" ++ (show int), "A=D+A", "D=M"]
 
 -- gets ASM label for push/pop static i
+static :: String -> Int -> String
 static fname int = "@" ++ fname ++ "." ++ (show int)
 
 -- Set D to the appropriate value
@@ -48,6 +50,7 @@ prePush _ Pointer 0 = ["@R3", "D=M"]
 prePush _ Pointer 1 = ["@R4", "D=M"]
 
 -- Sets D = A + int
+prePopPtr :: Int -> [String]
 prePopPtr int =
   [ "D=A"
   , "@" ++ (show int)
@@ -64,24 +67,28 @@ prePop _ Temp int = ["@" ++ (show $ 5 + int), "D=A"]
 prePop _ Pointer 0 = ["@R3", "D=A"]
 prePop _ Pointer 1 = ["@R4", "D=A"]
 
-toASM :: String -> Command -> [String]
+toASM :: String -> Int -> Command -> [String]
 -- Memory operations
-toASM fname (CM (Push seg int)) = prePush fname seg int ++ push
-toASM fname (CM (Pop seg int)) = prePop fname seg int ++ pop
+toASM fname _ (CM (Push seg int)) = prePush fname seg int ++ push
+toASM fname _ (CM (Pop seg int)) = prePop fname seg int ++ pop
 -- Arithmetic operations
-toASM _ (CL Add) = preBinary ++ ["D=D+M"] ++ push
-toASM _ (CL Sub) = preBinary ++ ["D=D-M"] ++ push
-toASM _ (CL Neg) = neg
+toASM _ _ (CL Add) = preBinary ++ ["D=D+M"] ++ push
+toASM _ _ (CL Sub) = preBinary ++ ["D=D-M"] ++ push
+toASM _ _ (CL Neg) = neg
 -- Boolean operations. Assumes top item(s) of stack
 -- are -1 (true) or 0 (false)
-toASM _ (CL And) = preBinary ++ ["D=D&M"] ++ push
-toASM _ (CL Or) = preBinary ++ ["D=D|M"] ++ push
-toASM _ (CL Not) = not
+toASM _ _ (CL And) = preBinary ++ ["D=D&M"] ++ push
+toASM _ _ (CL Or) = preBinary ++ ["D=D|M"] ++ push
+toASM _ _ (CL Not) = myNot
 -- Comparison operations
-toASM _ (CL Eq) = []
-toASM _ (CL Gt) = []
-toASM _ (CL Lt) = []
+toASM fname lineNum (CL Eq) = eq (getUniq fname lineNum)
+toASM fname lineNum (CL Gt) = gt (getUniq fname lineNum)
+toASM fname lineNum (CL Lt) = lt (getUniq fname lineNum)
 
+getUniq :: String -> Int -> String
+getUniq fname lineNum = fname ++ (show lineNum) ++ "__"
+
+neg :: [String]
 neg = 
   [ "@R0"
   , "AM=M-1"
@@ -89,12 +96,45 @@ neg =
   , "@R0"
   , "M=M+1" ]
 
-not =
+myNot :: [String]
+myNot =
   [ "@R0"
   , "AM=M-1"
   , "M=!M"
   , "@R0"
   , "M=M+1" ]
+
+pushTOrF :: String -> [String]
+pushTOrF uniq =
+  [ "@R0"
+  , "A=M"
+  , "M=0;"
+  , "@" ++ uniq ++ "END"
+  , "0;JMP"
+  , "(" ++ uniq ++ "TRUE)"
+  , "@R0"
+  , "A=M"
+  , "M=-1"
+  , "(" ++ uniq ++ "END)"
+  , "@R0"
+  , "M=M+1" ]
+
+atTrue :: String -> String
+atTrue uniq = "@" ++ uniq ++ "TRUE"
+
+eq :: String -> [String]
+eq uniq =
+  [ "@R0"
+  , "AM=M-1"
+  , "D=M"
+  , atTrue uniq
+  , "D;JEQ"] ++ pushTOrF uniq
+
+gt :: String -> [String]
+gt uniq = preBinary ++ ["D=D-M", atTrue uniq, "D;JGT"] ++ pushTOrF uniq
+
+lt :: String -> [String]
+lt uniq = preBinary ++ ["D=D-M", atTrue uniq, "D;JLT"] ++ pushTOrF uniq
 
 -- Sets
 -- * A = 13
@@ -107,6 +147,7 @@ not =
 -- * M = RAM[13] = 9
 -- * D = 15
 -- * SP = RAM[0] = 3
+preBinary :: [String]
 preBinary =
   [ "@R0"
   , "AM=M-1" -- A points to top of stack, decrement SP

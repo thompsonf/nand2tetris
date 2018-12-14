@@ -60,5 +60,13 @@ parseLineOrError (lineNum, s) = case parseLine s of
   Just line -> line
   Nothing -> error $ "Failed to parse line " ++ show lineNum ++ ": " ++ s
 
+removeComment :: String -> String
+removeComment "" = ""
+removeComment ('/':'/':xs) = ""
+removeComment (x:xs) = x:(removeComment xs)
+
+cleanLines :: [String] -> [String]
+cleanLines xs = filter (/= "") (map removeComment xs)
+
 parseFile :: String -> [Command]
-parseFile source = map parseLineOrError $ zip [0..] (lines source)
+parseFile source = map parseLineOrError $ zip [0..] (cleanLines (lines source))
