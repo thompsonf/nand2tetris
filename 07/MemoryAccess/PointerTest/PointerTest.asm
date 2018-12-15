@@ -1,0 +1,166 @@
+// CM (Push Constant 3030)
+@3030
+D=A
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CM (Pop Pointer 0)
+@R3
+D=A
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+// CM (Push Constant 3040)
+@3040
+D=A
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CM (Pop Pointer 1)
+@R4
+D=A
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+// CM (Push Constant 32)
+@32
+D=A
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CM (Pop This 2)
+@R3
+D=M
+@2
+D=D+A
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+// CM (Push Constant 46)
+@46
+D=A
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CM (Pop That 6)
+@R4
+D=M
+@6
+D=D+A
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+// CM (Push Pointer 0)
+@R3
+D=M
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CM (Push Pointer 1)
+@R4
+D=M
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CL Add
+@R0
+AM=M-1
+D=M
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+D=D+M
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CM (Push This 2)
+@R3
+D=M
+@2
+A=D+A
+D=M
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CL Sub
+@R0
+AM=M-1
+D=M
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+D=D-M
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CM (Push That 6)
+@R4
+D=M
+@6
+A=D+A
+D=M
+@R0
+A=M
+M=D
+@R0
+M=M+1
+// CL Add
+@R0
+AM=M-1
+D=M
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+D=D+M
+@R0
+A=M
+M=D
+@R0
+M=M+1

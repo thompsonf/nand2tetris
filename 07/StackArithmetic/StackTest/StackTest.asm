@@ -1,3 +1,4 @@
+// CM (Push Constant 17)
 @17
 D=A
 @R0
@@ -5,6 +6,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 17)
 @17
 D=A
 @R0
@@ -12,9 +14,17 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Eq
 @R0
 AM=M-1
 D=M
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+D=D-M
 @StackTest2__TRUE
 D;JEQ
 @R0
@@ -29,6 +39,7 @@ M=-1
 (StackTest2__END)
 @R0
 M=M+1
+// CM (Push Constant 17)
 @17
 D=A
 @R0
@@ -36,6 +47,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 16)
 @16
 D=A
 @R0
@@ -43,9 +55,17 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Eq
 @R0
 AM=M-1
 D=M
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+D=D-M
 @StackTest5__TRUE
 D;JEQ
 @R0
@@ -60,6 +80,7 @@ M=-1
 (StackTest5__END)
 @R0
 M=M+1
+// CM (Push Constant 16)
 @16
 D=A
 @R0
@@ -67,6 +88,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 17)
 @17
 D=A
 @R0
@@ -74,9 +96,17 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Eq
 @R0
 AM=M-1
 D=M
+@R13
+M=D
+@R0
+AM=M-1
+D=M
+@R13
+D=D-M
 @StackTest8__TRUE
 D;JEQ
 @R0
@@ -91,6 +121,7 @@ M=-1
 (StackTest8__END)
 @R0
 M=M+1
+// CM (Push Constant 892)
 @892
 D=A
 @R0
@@ -98,6 +129,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 891)
 @891
 D=A
 @R0
@@ -105,6 +137,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Lt
 @R0
 AM=M-1
 D=M
@@ -129,6 +162,7 @@ M=-1
 (StackTest11__END)
 @R0
 M=M+1
+// CM (Push Constant 891)
 @891
 D=A
 @R0
@@ -136,6 +170,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 892)
 @892
 D=A
 @R0
@@ -143,6 +178,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Lt
 @R0
 AM=M-1
 D=M
@@ -167,6 +203,7 @@ M=-1
 (StackTest14__END)
 @R0
 M=M+1
+// CM (Push Constant 891)
 @891
 D=A
 @R0
@@ -174,6 +211,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 891)
 @891
 D=A
 @R0
@@ -181,6 +219,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Lt
 @R0
 AM=M-1
 D=M
@@ -205,6 +244,7 @@ M=-1
 (StackTest17__END)
 @R0
 M=M+1
+// CM (Push Constant 32767)
 @32767
 D=A
 @R0
@@ -212,6 +252,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 32766)
 @32766
 D=A
 @R0
@@ -219,6 +260,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Gt
 @R0
 AM=M-1
 D=M
@@ -243,6 +285,7 @@ M=-1
 (StackTest20__END)
 @R0
 M=M+1
+// CM (Push Constant 32766)
 @32766
 D=A
 @R0
@@ -250,6 +293,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 32767)
 @32767
 D=A
 @R0
@@ -257,6 +301,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Gt
 @R0
 AM=M-1
 D=M
@@ -281,6 +326,7 @@ M=-1
 (StackTest23__END)
 @R0
 M=M+1
+// CM (Push Constant 32766)
 @32766
 D=A
 @R0
@@ -288,6 +334,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 32766)
 @32766
 D=A
 @R0
@@ -295,6 +342,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Gt
 @R0
 AM=M-1
 D=M
@@ -319,6 +367,7 @@ M=-1
 (StackTest26__END)
 @R0
 M=M+1
+// CM (Push Constant 57)
 @57
 D=A
 @R0
@@ -326,6 +375,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 31)
 @31
 D=A
 @R0
@@ -333,6 +383,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 53)
 @53
 D=A
 @R0
@@ -340,6 +391,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Add
 @R0
 AM=M-1
 D=M
@@ -355,6 +407,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 112)
 @112
 D=A
 @R0
@@ -362,6 +415,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Sub
 @R0
 AM=M-1
 D=M
@@ -377,11 +431,13 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Neg
 @R0
 AM=M-1
 M=-M
 @R0
 M=M+1
+// CL And
 @R0
 AM=M-1
 D=M
@@ -397,6 +453,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CM (Push Constant 82)
 @82
 D=A
 @R0
@@ -404,6 +461,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Or
 @R0
 AM=M-1
 D=M
@@ -419,6 +477,7 @@ A=M
 M=D
 @R0
 M=M+1
+// CL Not
 @R0
 AM=M-1
 M=!M

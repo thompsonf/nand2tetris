@@ -31,7 +31,7 @@ pop =
 
 -- sets D = RAM[A + int]
 prePushPtr :: Int -> [String]
-prePushPtr int = ["D=A", "@" ++ (show int), "A=D+A", "D=M"]
+prePushPtr int = ["D=M", "@" ++ (show int), "A=D+A", "D=M"]
 
 -- gets ASM label for push/pop static i
 static :: String -> Int -> String
@@ -49,10 +49,10 @@ prePush _ Temp int = ["@" ++ (show $ 5 + int), "D=M"]
 prePush _ Pointer 0 = ["@R3", "D=M"]
 prePush _ Pointer 1 = ["@R4", "D=M"]
 
--- Sets D = A + int
+-- Sets D = M + int
 prePopPtr :: Int -> [String]
 prePopPtr int =
-  [ "D=A"
+  [ "D=M"
   , "@" ++ (show int)
   , "D=D+A" ]
 
@@ -123,12 +123,7 @@ atTrue :: String -> String
 atTrue uniq = "@" ++ uniq ++ "TRUE"
 
 eq :: String -> [String]
-eq uniq =
-  [ "@R0"
-  , "AM=M-1"
-  , "D=M"
-  , atTrue uniq
-  , "D;JEQ"] ++ pushTOrF uniq
+eq uniq = preBinary ++ ["D=D-M", atTrue uniq, "D;JEQ"] ++ pushTOrF uniq
 
 gt :: String -> [String]
 gt uniq = preBinary ++ ["D=D-M", atTrue uniq, "D;JGT"] ++ pushTOrF uniq

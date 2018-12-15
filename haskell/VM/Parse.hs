@@ -34,6 +34,7 @@ parseSegment "that" = Just That
 parseSegment "constant" = Just Constant
 parseSegment "static" = Just Static
 parseSegment "pointer" = Just Pointer
+parseSegment "temp" = Just Temp
 parseSegment _ = Nothing
 
 parseMemory :: String -> Maybe Memory

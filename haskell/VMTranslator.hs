@@ -16,7 +16,7 @@ genCode fpath commands = genCodeHelper fname (zip [0..] commands)
 
 genCodeHelper :: String -> [(Int, Command)] -> [String]
 genCodeHelper _ [] = []
-genCodeHelper fname ((lineNum, command):xs) = current ++ rest
+genCodeHelper fname ((lineNum, command):xs) = ("// " ++ show command):(current ++ rest)
   where
     current = toASM fname lineNum command
     rest = genCodeHelper fname xs
