@@ -183,7 +183,10 @@ toASM _ (CFun Return) =
   , "0;JMP" ]
 
 pushZeroes :: Int -> [String]
-pushZeroes nLocals = ["@SP", "A=M"] ++ concat (replicate nLocals [ "M=0", "A=A+1" ])
+pushZeroes nLocals =
+  [ "@SP", "A=M" ] ++
+  concat (replicate nLocals [ "M=0", "AD=A+1" ]) ++
+  [ "@SP", "M=D" ]
 
 getLbl :: String -> String -> String
 getLbl func lbl = func ++ "$" ++ lbl
