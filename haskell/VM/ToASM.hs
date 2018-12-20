@@ -1,6 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module VM.ToASM (toASM) where
+module VM.ToASM (bootstrap, genCode, toASM) where
 
 import ASM.Pretty (prettyLine)
 import VM.Pretty (prettyCommand)
@@ -95,20 +95,20 @@ toASM Context{file, lineNum} (CL Gt) = gt (getUniq file lineNum)
 toASM Context{file, lineNum} (CL Lt) = lt (getUniq file lineNum)
 -- Flow operations
 toASM Context{file, lineNum, func=(Just f)} (CF (Label lbl)) =
-  ["(" ++ getLbl file f lbl ++ ")"]
+  ["(" ++ getLbl f lbl ++ ")"]
 toASM Context{file, func=(Just f)} (CF (Goto lbl)) =
-  [ "@" ++ getLbl file f lbl,
+  [ "@" ++ getLbl f lbl,
   , "0;JMP" ]
-toASM Context{file, func=(Just f)} (CF (IfGoto lbl)) =
+toASM Context{func=(Just f)} (CF (IfGoto lbl)) =
   [ "@SP"
   , "AM=M-1"
   , "D=M"
-  , "@" ++ getLbl file f lbl
+  , "@" ++ getLbl f lbl
   , "D;JNE" ]
 -- Function operations
 toASM Context{file} (CFun (Fun func nLocals)) =
   [ "(" ++ file ++ "." ++ func ++ ")"] ++ pushZeroes nLocals
-toASM Context{file, func=(Just f), nextCall} (CFun (Call func nArgs)) = 
+toASM Context{func=(Just f), nextCall} (CFun (Call func nArgs)) = 
   -- push return address
   [ "@" ++ lbl, "D=A" ] ++ push ++
   -- push other addresses
@@ -129,11 +129,11 @@ toASM Context{file, func=(Just f), nextCall} (CFun (Call func nArgs)) =
   , "@LCL"
   , "M=D"
   -- jump to the function's code
-  , "@" ++ file ++ "." ++ func
+  , "@" ++ func
   , "0;JMP"
   -- function jumps back here after it's done
   , "(" ++ lbl ++ ")" ]
-  where lbl = file ++ "." ++ f ++ "$ret." ++ nextCall
+  where lbl = f ++ "$ret." ++ nextCall
 toASM _ (CFun Return) =
   -- store base ptr of frame in R13 (FRAME)
   [ "@LCL"
@@ -192,8 +192,8 @@ pushZeroes nLocals = ["@SP", "A=M"] ++ concat $ replicate nLocals
   [ "M=0"
   , "A=A+1"]
 
-getLbl :: String -> String -> String -> String
-getLbl :: file func lbl = file ++ "." ++ func ++ "$" ++ lbl
+getLbl :: -> String -> String -> String
+getLbl :: func lbl = func ++ "$" ++ lbl
 
 getUniq :: String -> Int -> String
 getUniq fname lineNum = fname ++ (show lineNum) ++ "__"
@@ -263,3 +263,27 @@ preBinary =
   , "AM=M-1"
   , "D=M" 
   , "@R13" ] -- D holds second num to operate on
+
+bootstrap :: [String]
+bootstrap =
+  [ "@SP", "M=256" ] ++
+  toASM Context{file="", func=(Just "__BOOTSTRAP__"), lineNum=0, nextCall=0} (CFun (Call "Sys.init" 0))
+
+genCode :: String -> [Command] -> [String]
+genCode file commands = genCodeHelper (context f) commands
+  where context = Context{file=file, lineNum=0, func=Nothing, nextCall=0}
+
+genCodeHelper :: Context -> [Command] -> [String]
+genCodeHelper _ [] = []
+genCodeHelper context@Context{file, lineNum, func, nextCall} c:cs = asm ++ rest
+  where
+    asm = toASM context c
+    newNextCall = case c of
+      (CFun (Call _ _)) -> nextCall + 1
+      _ -> nextCall
+    newFunc = case c of
+      (CFun (Fun fname _)) -> fname
+      _ -> func
+    newLineNum = lineNum + 1
+    newContext = Context{file=file, lineNum=newLineNum, func=newFunc, nextCall=newNextCall}
+    rest = genCodeHelper newContext cs

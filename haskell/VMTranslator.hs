@@ -1,22 +1,19 @@
 import VM.Parse (parseFile)
-import VM.ToASM (toASM)
+import VM.ToASM (bootstrap, genCode)
 import VM.Types
+import System.Directory (isDirectory, listDirectory)
 import System.Environment
-import System.FilePath (takeBaseName)
+import System.FilePath (takeBaseName, takeExtension)
 
 main = do
   [input, output] <- getArgs
-  source <- readFile input
-  let ast = parseFile source
-  writeFile output $ unlines $ genCode input ast
+  isDir <- isDirectory input
+  files <- if isDir
+  	then listDirectory input >>= filter (\f -> takeExtension f == ".vm")
+  	else return input
+  asms <- sequence $ map genCodeForFile files
+  let withBootstrap = if length asms > 1 then bootstrap:asms else asms
+  writeFile output $ unlines withBootstrap
 
-genCode :: String -> [Command] -> [String]
-genCode fpath commands = genCodeHelper fname (zip [0..] commands)
-  where fname = takeBaseName fpath
-
-genCodeHelper :: String -> [(Int, Command)] -> [String]
-genCodeHelper _ [] = []
-genCodeHelper fname ((lineNum, command):xs) = ("// " ++ show command):(current ++ rest)
-  where
-    current = toASM fname lineNum command
-    rest = genCodeHelper fname xs
+genCodeForFile :: String -> IO [String]
+genCodeForFile file = readFile file >>= \source -> genCode file source
