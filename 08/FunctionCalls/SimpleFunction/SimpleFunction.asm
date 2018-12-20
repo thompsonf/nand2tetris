@@ -1,3 +1,4 @@
+//CFun (Fun "SimpleFunction.test" 2)
 (SimpleFunction.test)
 @SP
 A=M
@@ -7,6 +8,7 @@ M=0
 AD=A+1
 @SP
 M=D
+//CM (Push Local 0)
 @R1
 D=M
 @0
@@ -17,6 +19,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CM (Push Local 1)
 @R1
 D=M
 @1
@@ -27,6 +30,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CL Add
 @SP
 AM=M-1
 D=M
@@ -42,11 +46,13 @@ A=M
 M=D
 @SP
 M=M+1
+//CL Not
 @SP
 AM=M-1
 M=!M
 @SP
 M=M+1
+//CM (Push Argument 0)
 @R2
 D=M
 @0
@@ -57,6 +63,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CL Add
 @SP
 AM=M-1
 D=M
@@ -72,6 +79,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CM (Push Argument 1)
 @R2
 D=M
 @1
@@ -82,6 +90,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CL Sub
 @SP
 AM=M-1
 D=M
@@ -97,12 +106,14 @@ A=M
 M=D
 @SP
 M=M+1
+//CFun Return
 @LCL
 D=M
 @R13
 M=D
 @5
-D=D-A
+A=D-A
+D=M
 @R14
 M=D
 @SP

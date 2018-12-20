@@ -139,7 +139,8 @@ toASM _ (CFun Return) =
   , "M=D"
   -- store return address in R14
   , "@5"
-  , "D=D-A"
+  , "A=D-A"
+  , "D=M"
   , "@R14"
   , "M=D"
   -- store return value in ARG
@@ -153,7 +154,7 @@ toASM _ (CFun Return) =
   , "@ARG"
   , "D=M"
   , "@SP"
-  , "M=D"
+  , "M=D+1"
   -- set THAT to RAM[FRAME-1]
   , "@R13"
   , "AM=M-1"
@@ -180,9 +181,11 @@ toASM _ (CFun Return) =
   , "M=D"
   -- go back to the calling function
   , "@R14"
+  , "A=M"
   , "0;JMP" ]
 
 pushZeroes :: Int -> [String]
+pushZeroes 0 = []
 pushZeroes nLocals =
   [ "@SP", "A=M" ] ++
   concat (replicate nLocals [ "M=0", "AD=A+1" ]) ++
@@ -262,16 +265,20 @@ preBinary =
 
 bootstrap :: [String]
 bootstrap =
-  [ "@SP", "M=256" ] ++
-  toASM Context{file="", func="__BOOTSTRAP__", lineNum=0, nextCall=0} (CFun (Call "Sys.init" 0))
+  -- initialize SP
+  [ "@256"
+  , "D=A"
+  , "@SP"
+  , "M=D" ] ++
+  toASM Context{file="", func="BOOTSTRAP", lineNum=0, nextCall=0} (CFun (Call "Sys.init" 0))
 
 genCode :: String -> [Command] -> [String]
 genCode file commands = genCodeHelper context commands
-  where context = Context{file=file, lineNum=0, func="__BOOTSTRAP__", nextCall=0}
+  where context = Context{file=file, lineNum=0, func="BOOTSTRAP", nextCall=0}
 
 genCodeHelper :: Context -> [Command] -> [String]
 genCodeHelper _ [] = []
-genCodeHelper context@Context{file, lineNum, func, nextCall} (c:cs) = asm ++ rest
+genCodeHelper context@Context{file, lineNum, func, nextCall} (c:cs) = (("//" ++ show c):asm) ++ rest
   where
     asm = toASM context c
     newNextCall = case c of

@@ -1,3 +1,4 @@
+//CM (Push Constant 0)
 @0
 D=A
 @SP
@@ -5,6 +6,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CM (Pop Local 0)
 @R1
 D=M
 @0
@@ -17,7 +19,9 @@ D=M
 @R13
 A=M
 M=D
-(__BOOTSTRAP__$LOOP_START)
+//CF (Label "LOOP_START")
+(BOOTSTRAP$LOOP_START)
+//CM (Push Argument 0)
 @R2
 D=M
 @0
@@ -28,6 +32,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CM (Push Local 0)
 @R1
 D=M
 @0
@@ -38,6 +43,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CL Add
 @SP
 AM=M-1
 D=M
@@ -53,6 +59,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CM (Pop Local 0)
 @R1
 D=M
 @0
@@ -65,6 +72,7 @@ D=M
 @R13
 A=M
 M=D
+//CM (Push Argument 0)
 @R2
 D=M
 @0
@@ -75,6 +83,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CM (Push Constant 1)
 @1
 D=A
 @SP
@@ -82,6 +91,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CL Sub
 @SP
 AM=M-1
 D=M
@@ -97,6 +107,7 @@ A=M
 M=D
 @SP
 M=M+1
+//CM (Pop Argument 0)
 @R2
 D=M
 @0
@@ -109,6 +120,7 @@ D=M
 @R13
 A=M
 M=D
+//CM (Push Argument 0)
 @R2
 D=M
 @0
@@ -119,11 +131,13 @@ A=M
 M=D
 @SP
 M=M+1
+//CF (IfGoto "LOOP_START")
 @SP
 AM=M-1
 D=M
-@__BOOTSTRAP__$LOOP_START
+@BOOTSTRAP$LOOP_START
 D;JNE
+//CM (Push Local 0)
 @R1
 D=M
 @0
