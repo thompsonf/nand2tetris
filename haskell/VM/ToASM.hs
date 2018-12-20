@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module VM.ToASM (toASM) where
 
 import ASM.Pretty (prettyLine)
@@ -11,10 +13,10 @@ import VM.Types
 -- Pushes value from D onto stack
 push :: [String]
 push =
-  [ "@R0"
+  [ "@SP"
   , "A=M"
   , "M=D"
-  , "@R0"
+  , "@SP"
   , "M=M+1" ]
 
 -- Pops value from stack and puts it in RAM[D]
@@ -22,7 +24,7 @@ pop :: [String]
 pop =
   [ "@R13"
   , "M=D"
-  , "@R0"
+  , "@SP"
   , "AM=M-1"
   , "D=M"
   , "@R13"
@@ -67,56 +69,164 @@ prePop _ Temp int = ["@" ++ (show $ 5 + int), "D=A"]
 prePop _ Pointer 0 = ["@R3", "D=A"]
 prePop _ Pointer 1 = ["@R4", "D=A"]
 
-toASM :: String -> Int -> Command -> [String]
+data Context = Context
+  { file :: String
+  , lineNum :: Int
+  , func :: Maybe String
+  , nextCall :: 0
+  } deriving Show
+
+toASM :: Context -> Command -> [String]
 -- Memory operations
-toASM fname _ (CM (Push seg int)) = prePush fname seg int ++ push
-toASM fname _ (CM (Pop seg int)) = prePop fname seg int ++ pop
+toASM Context{file} (CM (Push seg int)) = prePush file seg int ++ push
+toASM Context{file} (CM (Pop seg int)) = prePop file seg int ++ pop
 -- Arithmetic operations
-toASM _ _ (CL Add) = preBinary ++ ["D=D+M"] ++ push
-toASM _ _ (CL Sub) = preBinary ++ ["D=D-M"] ++ push
-toASM _ _ (CL Neg) = neg
+toASM _ (CL Add) = preBinary ++ ["D=D+M"] ++ push
+toASM _ (CL Sub) = preBinary ++ ["D=D-M"] ++ push
+toASM _ (CL Neg) = neg
 -- Boolean operations. Assumes top item(s) of stack
 -- are -1 (true) or 0 (false)
-toASM _ _ (CL And) = preBinary ++ ["D=D&M"] ++ push
-toASM _ _ (CL Or) = preBinary ++ ["D=D|M"] ++ push
-toASM _ _ (CL Not) = myNot
+toASM _ (CL And) = preBinary ++ ["D=D&M"] ++ push
+toASM _ (CL Or) = preBinary ++ ["D=D|M"] ++ push
+toASM _ (CL Not) = myNot
 -- Comparison operations
-toASM fname lineNum (CL Eq) = eq (getUniq fname lineNum)
-toASM fname lineNum (CL Gt) = gt (getUniq fname lineNum)
-toASM fname lineNum (CL Lt) = lt (getUniq fname lineNum)
+toASM Context{file, lineNum} (CL Eq) = eq (getUniq file lineNum)
+toASM Context{file, lineNum} (CL Gt) = gt (getUniq file lineNum)
+toASM Context{file, lineNum} (CL Lt) = lt (getUniq file lineNum)
+-- Flow operations
+toASM Context{file, lineNum, func=(Just f)} (CF (Label lbl)) =
+  ["(" ++ getLbl file f lbl ++ ")"]
+toASM Context{file, func=(Just f)} (CF (Goto lbl)) =
+  [ "@" ++ getLbl file f lbl,
+  , "0;JMP" ]
+toASM Context{file, func=(Just f)} (CF (IfGoto lbl)) =
+  [ "@SP"
+  , "AM=M-1"
+  , "D=M"
+  , "@" ++ getLbl file f lbl
+  , "D;JNE" ]
+-- Function operations
+toASM Context{file} (CFun (Fun func nLocals)) =
+  [ "(" ++ file ++ "." ++ func ++ ")"] ++ pushZeroes nLocals
+toASM Context{file, func=(Just f), nextCall} (CFun (Call func nArgs)) = 
+  -- push return address
+  [ "@" ++ lbl, "D=A" ] ++ push ++
+  -- push other addresses
+  [ "@LCL", "D=M" ] ++ push ++
+  [ "@ARG", "D=M" ] ++ push ++
+  [ "@THIS", "D=M" ] ++ push ++
+  [ "@THAT", "D=M" ] ++ push ++
+  -- set ARG = SP - nArgs - 5
+  [ "@SP"
+  , "D=M"
+  , "@" ++ (nArgs + 5)
+  , "D=D-A"
+  , "@ARG"
+  , "M=D"
+  -- set LCL = SP
+  , "@SP"
+  , "D=M"
+  , "@LCL"
+  , "M=D"
+  -- jump to the function's code
+  , "@" ++ file ++ "." ++ func
+  , "0;JMP"
+  -- function jumps back here after it's done
+  , "(" ++ lbl ++ ")" ]
+  where lbl = file ++ "." ++ f ++ "$ret." ++ nextCall
+toASM _ (CFun Return) =
+  -- store base ptr of frame in R13 (FRAME)
+  [ "@LCL"
+  , "D=M"
+  , "@R13"
+  , "M=D"
+  -- store return address in R14
+  , "@5"
+  , "D=D-A"
+  , "@R14"
+  , "M=D"
+  -- store return value in ARG
+  , "@SP"
+  , "A=M-1"
+  , "D=M"
+  , "@ARG"
+  , "A=M"
+  , "M=D"
+  -- set SP to ARG+1
+  , "@ARG"
+  , "D=M"
+  , "@SP"
+  , "M=D"
+  -- set THAT to RAM[FRAME-1]
+  , "@R13"
+  , "AM=M-1"
+  , "D=M"
+  , "@THAT"
+  , "M=D"
+  -- set THIS to RAM[FRAME-2]
+  , "@R13"
+  , "AM=M-1"
+  , "D=M"
+  , "@THIS"
+  , "M=D"
+  -- set ARG to RAM[FRAME-3]
+  , "@R13"
+  , "AM=M-1"
+  , "D=M"
+  , "@ARG"
+  , "M=D"
+  -- set LCL to RAM[FRAME-4]
+  , "@R13"
+  , "AM=M-1"
+  , "D=M"
+  , "@LCL"
+  , "M=D"
+  -- go back to the calling function
+  , "@R14"
+  , "0;JMP" ]
+
+
+
+pushZeroes :: Int -> [String]
+pushZeroes nLocals = ["@SP", "A=M"] ++ concat $ replicate nLocals
+  [ "M=0"
+  , "A=A+1"]
+
+getLbl :: String -> String -> String -> String
+getLbl :: file func lbl = file ++ "." ++ func ++ "$" ++ lbl
 
 getUniq :: String -> Int -> String
 getUniq fname lineNum = fname ++ (show lineNum) ++ "__"
 
 neg :: [String]
 neg = 
-  [ "@R0"
+  [ "@SP"
   , "AM=M-1"
   , "M=-M"
-  , "@R0"
+  , "@SP"
   , "M=M+1" ]
 
 myNot :: [String]
 myNot =
-  [ "@R0"
+  [ "@SP"
   , "AM=M-1"
   , "M=!M"
-  , "@R0"
+  , "@SP"
   , "M=M+1" ]
 
 pushTOrF :: String -> [String]
 pushTOrF uniq =
-  [ "@R0"
+  [ "@SP"
   , "A=M"
   , "M=0;"
   , "@" ++ uniq ++ "END"
   , "0;JMP"
   , "(" ++ uniq ++ "TRUE)"
-  , "@R0"
+  , "@SP"
   , "A=M"
   , "M=-1"
   , "(" ++ uniq ++ "END)"
-  , "@R0"
+  , "@SP"
   , "M=M+1" ]
 
 atTrue :: String -> String
@@ -144,12 +254,12 @@ lt uniq = preBinary ++ ["D=D-M", atTrue uniq, "D;JLT"] ++ pushTOrF uniq
 -- * SP = RAM[0] = 3
 preBinary :: [String]
 preBinary =
-  [ "@R0"
+  [ "@SP"
   , "AM=M-1" -- A points to top of stack, decrement SP
   , "D=M" -- D is first num to operate on
   , "@R13"
   , "M=D" -- RAM[13] holds first num to operate on
-  , "@R0"
+  , "@SP"
   , "AM=M-1"
   , "D=M" 
   , "@R13" ] -- D holds second num to operate on

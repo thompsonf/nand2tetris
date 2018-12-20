@@ -25,5 +25,17 @@ data Memory = Pop Segment Int
   | Push Segment Int
   deriving Show
 
-data Command = CL Logical | CM Memory
+data Flow = Label String
+  | Goto String
+  | IfGoto String
+  deriving Show
+
+data Function = Fun String Int
+  | Call String Int
+  | Return
+
+data Command = CL Logical
+  | CM Memory
+  | CF Flow
+  | CFun Function
   deriving Show

@@ -50,10 +50,30 @@ parseMemHelper (one:two:three:[]) = case (mPP, mSeg, mInt) of
     mInt = readMaybe three :: Maybe Int
 parseMemHelper _ = Nothing
 
+parseFlow :: String -> Maybe Flow
+parseFlow str = case (words str) of
+  ("label":lbl:[]) -> Just Label lbl
+  ("if-goto":lbl:[]) -> Just IfGoto lbl
+  ("goto":lbl:[]) -> Just Goto lbl
+  _ -> Nothing
+
+parseFunction :: String -> Maybe Function
+parseFunction str = case (words str) of
+  ("function":fname:nLocals:[]) -> case (readMaybe nLocals :: Maybe Int) of
+    Just n -> Just Fun fname n
+    _ -> Nothing
+  ("call":fname:nArgs:[]) -> case (readMaybe nArgs :: Maybe Int) of
+    Just n -> Just Call fname n
+    _ -> Nothing
+  ("return":[]) -> Just Return
+  _ -> Nothing
+
 parseLine :: String -> Maybe Command
-parseLine l = case (parseLogical $ filter (not . isSpace) l, parseMemory l) of
-  (Just log, _) -> Just $ CL log
-  (_, Just mem) -> Just $ CM mem
+parseLine l = case (parseLogical $ filter (not . isSpace) l, parseMemory l, parseFlow l, parseFunction l) of
+  (Just log, _, _, _) -> Just $ CL log
+  (_, Just mem, _, _) -> Just $ CM mem
+  (_, _, Just flow, _) -> Just $ CF flow
+  (_, _, _, Just func) -> Just $ CFunc func
   _ -> Nothing
 
 parseLineOrError :: (Int, String) -> Command
