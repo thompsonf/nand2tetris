@@ -33,6 +33,7 @@ data Flow = Label String
 data Function = Fun String Int
   | Call String Int
   | Return
+  deriving Show
 
 data Command = CL Logical
   | CM Memory

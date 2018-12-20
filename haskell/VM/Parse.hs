@@ -52,18 +52,18 @@ parseMemHelper _ = Nothing
 
 parseFlow :: String -> Maybe Flow
 parseFlow str = case (words str) of
-  ("label":lbl:[]) -> Just Label lbl
-  ("if-goto":lbl:[]) -> Just IfGoto lbl
-  ("goto":lbl:[]) -> Just Goto lbl
+  ("label":lbl:[]) -> Just $ Label lbl
+  ("if-goto":lbl:[]) -> Just $ IfGoto lbl
+  ("goto":lbl:[]) -> Just $ Goto lbl
   _ -> Nothing
 
 parseFunction :: String -> Maybe Function
 parseFunction str = case (words str) of
   ("function":fname:nLocals:[]) -> case (readMaybe nLocals :: Maybe Int) of
-    Just n -> Just Fun fname n
+    Just n -> Just $ Fun fname n
     _ -> Nothing
   ("call":fname:nArgs:[]) -> case (readMaybe nArgs :: Maybe Int) of
-    Just n -> Just Call fname n
+    Just n -> Just $ Call fname n
     _ -> Nothing
   ("return":[]) -> Just Return
   _ -> Nothing
@@ -73,7 +73,7 @@ parseLine l = case (parseLogical $ filter (not . isSpace) l, parseMemory l, pars
   (Just log, _, _, _) -> Just $ CL log
   (_, Just mem, _, _) -> Just $ CM mem
   (_, _, Just flow, _) -> Just $ CF flow
-  (_, _, _, Just func) -> Just $ CFunc func
+  (_, _, _, Just func) -> Just $ CFun func
   _ -> Nothing
 
 parseLineOrError :: (Int, String) -> Command
