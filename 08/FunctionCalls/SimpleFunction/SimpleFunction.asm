@@ -2,9 +2,11 @@
 @SP
 A=M
 M=0
-A=A+1
+AD=A+1
 M=0
-A=A+1
+AD=A+1
+@SP
+M=D
 @R1
 D=M
 @0
@@ -112,7 +114,7 @@ M=D
 @ARG
 D=M
 @SP
-M=D
+M=D+1
 @R13
 AM=M-1
 D=M
@@ -134,4 +136,5 @@ D=M
 @LCL
 M=D
 @R14
+A=M
 0;JMP
