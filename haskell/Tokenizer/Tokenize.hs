@@ -10,27 +10,30 @@ tokenize :: String -> [Token]
 tokenize input = reverse (tokenizeHelper [] "" input)
 
 tokenizeHelper :: [Token] -> String -> String -> [Token]
+tokenizeHelper acc temp "" = toToken acc temp
 tokenizeHelper acc temp input@(x:xs) =
-  if noComment /= input then tokenizeHelper (token:acc) "" noComment
+  if noComment /= input then tokenizeHelper newAcc "" noComment
+  else if x == '"' then tokenizeHelper (strTok:acc) "" afterStrConst
   else case toSymbol x of
-    Just sym -> tokenizeHelper ((TSymbol sym):token:acc) "" xs
-    Nothing -> tokenizeHelper acc (x:temp) xs
-  where token = toToken (reverse temp)
-        noComment = stripComment xs
-tokenizeHelper acc temp "" = (toToken temp):acc
+    Just sym -> tokenizeHelper ((TSymbol sym):newAcc) "" xs
+    Nothing -> if (isSpace x) then tokenizeHelper newAcc "" xs
+      else tokenizeHelper acc (x:temp) xs
+  where newAcc = toToken acc temp
+        noComment = stripComment input
+        (strTok, afterStrConst) = takeStrConst "" xs
 
-toToken :: String -> Token
-toToken input@(x:xs) =
-  if (isDigit x) then TIntConst (read input :: Int)
-  else if (x == '"') then TStrConst (readStrConst xs)
+toToken :: [Token] -> String -> [Token]
+toToken acc "" = acc
+toToken acc rev@(x:xs) =
+  (if (isDigit x) then TIntConst (read input :: Int)
   else case toKeyword input of
     Just kw -> TKeyword kw
-    Nothing -> TIdentifier input
+    Nothing -> TIdentifier input):acc
+  where input = reverse rev
 
-readStrConst :: String -> String
-readStrConst ('"':_) = ""
-readStrConst (x:xs) = x:(readStrConst xs)
-readStrConst _ = ""
+takeStrConst :: String -> String -> (Token, String)
+takeStrConst acc ('"':xs) = (TStrConst $ reverse acc, xs)
+takeStrConst acc (x:xs) = takeStrConst (x:acc) xs
 
 toKeyword :: String -> Maybe Keyword
 toKeyword "class" = Just KClass
