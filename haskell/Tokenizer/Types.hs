@@ -48,9 +48,9 @@ data Symbol = SLCurl
   deriving Show
   -- Might be missing one? Looked like repeat '-' in spec
 
-data Token = Keyword
-  | Symbol
-  | IntConst Int
-  | StrConst String
-  | Identifier String
+data Token = TKeyword Keyword
+  | TSymbol Symbol
+  | TIntConst Int
+  | TStrConst String
+  | TIdentifier String
   deriving Show
