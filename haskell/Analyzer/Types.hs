@@ -19,8 +19,8 @@ data AStatement = ALet String (Maybe AExpression) AExpression
 data AExpression = ATerm [(AOp, ATerm)]
 data ATerm = AIntConst Int
   | AStrConst String
-  | AKeywordConst
-  | AVarName (Maybe AExpression)
+  | AKey AKeywordConst
+  | AVarName String (Maybe AExpression)
   | ASub ASubroutineCall
   -- Need AParenExpression?
   | AUnaryOp ATerm -- minus is only unary op
