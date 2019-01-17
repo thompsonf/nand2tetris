@@ -2,20 +2,39 @@ module Analyzer.Analyze
 ( analyze
 ) where
 
+import Analyzer.Parser
 import Analyzer.Types
 import Tokenizer.Types
 
 analyze :: [Token] -> AClass
 analyze = error "not implemented"
 
-eat :: Token -> [Token] -> [Token]
-eat t ts = if t == (head ts)
-  then tail ts
-  else error $ "expected token " ++ show t
+parseIdent :: Parser String
+parseIdent = Parser helper
+  where
+    helper ((TIdentifier str):rest) = (str, rest)
+    helper _ = error "expected identifier"
 
-eatIdent :: Token -> [Token] -> (String, [Token])
-eatIdent ((TIdentifier str):rest) = (str, rest)
-eatIdent _ = error "expected identifier"
+eatSym :: Symbol -> Parser ()
+eatSym sym = Parser helper
+  where
+    helper ((TSymbol sym):rest) = ((), rest)
+    helper _ = error $ "expected symbol " ++ show sym
+
+parseOp :: Parser AOp
+parseOp = Parser \(token:rest) -> (helper token, rest)
+  where
+    helper (TSymbol SPlus) = AOPlus
+    helper (TSymbol SMinus) = AOMinus
+    helper (TSymbol SStar) = AOStar
+    helper (TSymbol SSlash) = AOSlash
+    helper (TSymbol SAmp) = AOAnd
+    helper (TSymbol SBar) = AOBar
+    helper (TSymbol SLT) = AOLT
+    helper (TSymbol SGT) = AOGT
+    helper (TSymbol SEQ) = AOEq
+    helper _ = error "expected operator"
+
 
 toOp :: Token -> Maybe AOp
 takeOp (TSymbol SPlus) = Just AOPlus
@@ -59,7 +78,7 @@ parseTerm ((TIdentifier str):(TSymbol SLParen):rest) =
       afterDot = eat (TSymbol SDot) afterIdent
       (funcName, afterFunc) = eatIdent afterDot
       afterLParen = eat (TSymbol SLParen) afterFunc
-      
+
 
   in case afterExpr of
     ((TSymbol SRSquare):remain) -> (AVarName str (Just expr), remain)

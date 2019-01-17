@@ -45,7 +45,7 @@ data Symbol = SLCurl
   | SLT
   | SGT
   | SEQ
-  deriving Show
+  deriving (Eq, Show)
   -- Might be missing one? Looked like repeat '-' in spec
 
 data Token = TKeyword Keyword
