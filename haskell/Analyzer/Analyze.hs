@@ -61,17 +61,20 @@ parseExpression = error "not implemented"
 parseExpressionList :: [Token] -> ([AExpression], [Token])
 parseExpressionList = error "not implemented"
 
-parseTerm :: [Token] -> (ATerm, [Token])
-parseTerm ((TIntConst int):rest) = (AIntConst int, rest)
-parseTerm ((TStrConst str):rest) = (AStrConst str, rest)
-parseTerm ((TKeyword KTrue):rest) = (AKey AKTrue, rest)
-parseTerm ((TKeyword KFalse):rest) = (AKey AKFalse, rest)
-parseTerm ((TKeyword KNull):rest) = (AKey AKNull, rest)
-parseTerm ((TKeyword KThis):rest) = (AKey AKThis, rest)
-parseTerm ((TIdentifier str):(TSymbol SLSquare):rest) = 
+parseTerm :: Parser ATerm
+parseTerm = Parser termHelper
+
+termHelper :: [Token] -> (ATerm, [Token])
+termHelper ((TIntConst int):rest) = (AIntConst int, rest)
+termHelper ((TStrConst str):rest) = (AStrConst str, rest)
+termHelper ((TKeyword KTrue):rest) = (AKey AKTrue, rest)
+termHelper ((TKeyword KFalse):rest) = (AKey AKFalse, rest)
+termHelper ((TKeyword KNull):rest) = (AKey AKNull, rest)
+termHelper ((TKeyword KThis):rest) = (AKey AKThis, rest)
+termHelper ((TIdentifier str):(TSymbol SLSquare):rest) = 
   let (expr, afterExpr) = parseExpression rest
   in eat (TSymbol SRSquare) afterExpr
-parseTerm ((TIdentifier str):(TSymbol SLParen):rest) = 
+termHelper ((TIdentifier str):(TSymbol SLParen):rest) = 
   let (exprs, afterExprs) = parseExpressionList rest
       beforeObj = eat (TSymbol SRParen) afterExprs
       (objName, afterObj) = eatIdent beforeObj
@@ -83,5 +86,5 @@ parseTerm ((TIdentifier str):(TSymbol SLParen):rest) =
   in case afterExpr of
     ((TSymbol SRSquare):remain) -> (AVarName str (Just expr), remain)
     _ -> error "could not find right bracket"
-parseTerm ((TIdentifier str):rest) = (AVarName str Nothing, rest)
-parseTerm (())
+termHelper ((TIdentifier str):rest) = (AVarName str Nothing, rest)
+termHelper (())
