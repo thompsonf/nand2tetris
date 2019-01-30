@@ -8,7 +8,7 @@ data AFuncReturn = AFuncReturnType AType | AFuncReturnVoid
 data ASubroutineDec = AConstructor AFuncReturn String [AParameter] ASubroutineBody
 data AParameter = AParameter AType String
 data ASubroutineBody = ASubroutineBody [AVarDec] [AStatement]
-data AVarDec = AType [String]
+data AVarDec = AVarDec AType [String]
 
 data AStatement = ALet String (Maybe AExpression) AExpression
   | AIf AExpression [AStatement] [AStatement]
@@ -16,13 +16,13 @@ data AStatement = ALet String (Maybe AExpression) AExpression
   | ADo ASubroutineCall
   | AReturn (Maybe AExpression)
 
-data AExpression = ATerm [(AOp, ATerm)]
+data AExpression = AExpression ATerm [(AOp, ATerm)]
 data ATerm = AIntConst Int
   | AStrConst String
   | AKey AKeywordConst
   | AVarName String (Maybe AExpression)
   | ASub ASubroutineCall
-  -- Need AParenExpression?
+  | AParenExpr AExpression
   | AUnaryOp ATerm -- minus is only unary op
 
 data ASubroutineCall = ASubroutineCall (Maybe String) String [AExpression]

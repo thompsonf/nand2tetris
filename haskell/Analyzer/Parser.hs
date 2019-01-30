@@ -2,15 +2,19 @@ module Analyzer.Parser where
 
 import Tokenizer.Types (Token)
 
-data Parser a = Parser [Token] -> (a, [Token])
+data Parser a = Parser ([Token] -> (a, [Token]))
 
 pmap :: (a -> b) -> Parser a -> Parser b
-pmap f p = \input -> let (a, rest) = p ss 
-                     in (f a, rest)
+pmap f (Parser p) = Parser $ \input -> let (a, rest) = p input 
+                                       in (f a, rest)
+
+runParser :: Parser a -> [Token] -> (a, [Token])
+runParser (Parser p) tokens = p tokens
 
 instance Functor Parser where
-  fmap f (Parser p) = Parser (pmap f p)
+  fmap = pmap
 
 instance Applicative Parser where  
-  pure x = Parser \tokens -> (x, tokens)  
-  (Parser f) <*> (Parser x) = Parser \tokens -> (f x, tokens)
+  pure x = Parser $ \tokens -> (x, tokens)  
+  pf <*> px = Parser $ \tokens -> let (f, rest) = runParser pf tokens
+    in runParser (f <$> px) tokens

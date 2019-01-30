@@ -22,7 +22,7 @@ eatSym sym = Parser helper
     helper _ = error $ "expected symbol " ++ show sym
 
 parseOp :: Parser AOp
-parseOp = Parser \(token:rest) -> (helper token, rest)
+parseOp = Parser $ \(token:rest) -> (helper token, rest)
   where
     helper (TSymbol SPlus) = AOPlus
     helper (TSymbol SMinus) = AOMinus
@@ -36,7 +36,7 @@ parseOp = Parser \(token:rest) -> (helper token, rest)
     helper _ = error "expected operator"
 
 
-toOp :: Token -> Maybe AOp
+takeOp :: Token -> Maybe AOp
 takeOp (TSymbol SPlus) = Just AOPlus
 takeOp (TSymbol SMinus) = Just AOMinus
 takeOp (TSymbol SStar) = Just AOStar
@@ -55,11 +55,24 @@ toKeywordConst (TKeyword KNull) = Just AKNull
 toKeywordConst (TKeyword KThis) = Just AKThis 
 toKeywordConst _ = Nothing
 
-parseExpression :: [Token] -> (AExpression, [Token])
-parseExpression = error "not implemented"
+parseExpression :: Parser AExpression
+parseExpression = Parser $ \tokens ->
+  let (term, rest) = runParser parseTerm tokens
+  in case rest of
+    [] -> (AExpression term [], [])
+    (tok:toks) -> case (takeOp tok) of
+      Nothing -> (AExpression term [], rest)
+      Just op -> let (AExpression term2 otherTerms, restTokens) = runParser parseExpression toks
+        in (AExpression term ((op, term2):otherTerms), restTokens)
 
-parseExpressionList :: [Token] -> ([AExpression], [Token])
-parseExpressionList = error "not implemented"
+parseExpressionList :: Parser [AExpression]
+parseExpressionList = Parser $ \tokens ->
+  case tokens of
+    ((TSymbol SRParen):restTokens) -> ([], restTokens)
+    tokens' -> let (expr, restTokens) = runParser parseExpression tokens' in case (tokens') of
+      ((TSymbol SRParen):others) -> ([expr], others)
+      ((TSymbol SComma):others) -> let (exprList, leftovers) = runParser parseExpressionList others in
+        ((expr:exprList), leftovers)
 
 parseTerm :: Parser ATerm
 parseTerm = Parser termHelper
@@ -71,20 +84,16 @@ termHelper ((TKeyword KTrue):rest) = (AKey AKTrue, rest)
 termHelper ((TKeyword KFalse):rest) = (AKey AKFalse, rest)
 termHelper ((TKeyword KNull):rest) = (AKey AKNull, rest)
 termHelper ((TKeyword KThis):rest) = (AKey AKThis, rest)
-termHelper ((TIdentifier str):(TSymbol SLSquare):rest) = 
-  let (expr, afterExpr) = parseExpression rest
-  in eat (TSymbol SRSquare) afterExpr
-termHelper ((TIdentifier str):(TSymbol SLParen):rest) = 
-  let (exprs, afterExprs) = parseExpressionList rest
-      beforeObj = eat (TSymbol SRParen) afterExprs
-      (objName, afterObj) = eatIdent beforeObj
-      afterDot = eat (TSymbol SDot) afterIdent
-      (funcName, afterFunc) = eatIdent afterDot
-      afterLParen = eat (TSymbol SLParen) afterFunc
-
-
-  in case afterExpr of
-    ((TSymbol SRSquare):remain) -> (AVarName str (Just expr), remain)
-    _ -> error "could not find right bracket"
+termHelper ((TIdentifier str):(TSymbol SLSquare):rest) =
+  runParser ((AVarName str) <$> (Just <$> parseExpression) <* (eatSym SRSquare)) rest
+termHelper ((TIdentifier fun):(TSymbol SLParen):rest) = 
+  let (exprs, otherTokens) = runParser parseExpressionList rest
+  in (ASub $ ASubroutineCall Nothing fun exprs, otherTokens)
+termHelper ((TIdentifier cls):(TSymbol SDot):(TIdentifier fun):(TSymbol SLParen):rest) = 
+  let (exprs, otherTokens) = runParser parseExpressionList rest
+  in (ASub $ ASubroutineCall (Just cls) fun exprs, otherTokens)
 termHelper ((TIdentifier str):rest) = (AVarName str Nothing, rest)
-termHelper (())
+termHelper ((TSymbol SLParen):rest) = 
+  runParser (AParenExpr <$> parseExpression <* (eatSym SRParen)) rest
+termHelper ((TSymbol SMinus):rest) =
+  runParser (AUnaryOp <$> parseTerm) rest
