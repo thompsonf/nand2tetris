@@ -24,8 +24,8 @@ tokenizeHelper acc temp input@(x:xs) =
 
 toToken :: [Token] -> String -> [Token]
 toToken acc "" = acc
-toToken acc rev@(x:xs) =
-  (if (isDigit x) then TIntConst (read input :: Int)
+toToken acc rev =
+  (if (isDigit (head input)) then TIntConst (read input :: Int)
   else case toKeyword input of
     Just kw -> TKeyword kw
     Nothing -> TIdentifier input):acc

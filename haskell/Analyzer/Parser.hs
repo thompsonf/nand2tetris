@@ -17,4 +17,4 @@ instance Functor Parser where
 instance Applicative Parser where  
   pure x = Parser $ \tokens -> (x, tokens)  
   pf <*> px = Parser $ \tokens -> let (f, rest) = runParser pf tokens
-    in runParser (f <$> px) tokens
+    in runParser (f <$> px) rest

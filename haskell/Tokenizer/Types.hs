@@ -25,7 +25,7 @@ data Keyword = KClass
   | KElse
   | KWhile
   | KReturn
-  deriving Show
+  deriving (Eq, Show)
 
 data Symbol = SLCurl
   | SRCurl

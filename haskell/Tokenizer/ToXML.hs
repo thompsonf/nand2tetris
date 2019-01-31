@@ -1,5 +1,5 @@
 module Tokenizer.ToXML
-( toXML
+( toXML, keywordToStr, symbolToStr
 ) where
 
 import Tokenizer.Types
