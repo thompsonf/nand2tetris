@@ -135,8 +135,8 @@ keywordConstToXML AKNull = kw KNull
 keywordConstToXML AKThis = kw KThis
 
 termToXMLHelp :: ATerm -> String
-termToXMLHelp (AIntConst int) = "<integerConstant>" ++ show int ++ "</integerConstant>"
-termToXMLHelp (AStrConst str) = "<stringConstant>" ++ str ++ "</stringConstant>"
+termToXMLHelp (AIntConst int) = "<integerConstant> " ++ show int ++ " </integerConstant>"
+termToXMLHelp (AStrConst str) = "<stringConstant> " ++ str ++ " </stringConstant>"
 termToXMLHelp (AKey key) = keywordConstToXML key
 termToXMLHelp (AVarName var idx) = varWithIdxToXML var idx
 termToXMLHelp (ASub call) = subroutineCallToXML call
@@ -178,10 +178,10 @@ typeToXML ABoolean = "<keyword>boolean</keyword>"
 typeToXML (AClassName name) = identToXML name
 
 identToXML :: String -> String
-identToXML ident = "<identifier>" ++ ident ++ "</identifier>"
+identToXML ident = "<identifier> " ++ ident ++ " </identifier>"
 
 kw :: Keyword -> String
-kw x = "<keyword>" ++ keywordToStr x ++ "</keyword>"
+kw x = "<keyword> " ++ keywordToStr x ++ " </keyword>"
 
 sym :: Symbol -> String
-sym x = "<symbol>" ++ symbolToStr x ++ "</symbol>"
+sym x = "<symbol> " ++ symbolToStr x ++ " </symbol>"
