@@ -42,7 +42,7 @@ subroutineDecToXML (ASubroutineDec kind ret name params body) = "<subroutineDec>
 
 funReturnToXML :: AFuncReturn -> String
 funReturnToXML (AFuncReturnType theType) = typeToXML theType
-funReturnToXML AFuncReturnVoid = kw void
+funReturnToXML AFuncReturnVoid = kw KVoid
 
 parameterToXML :: AParameter -> String
 parameterToXML (AParameter theType name) = typeToXML theType ++ identToXML name
@@ -63,17 +63,19 @@ subroutineCallToXML (ASubroutineCall className func args) = classStr
   where classStr = case className of Nothing -> ""
                                      Just cn -> identToXML cn ++ sym SDot
 
+varWithIdxToXML :: String -> Maybe AExpression -> String
+varWithIdxToXML var idx = identToXML var ++ idxStr
+  where idxStr = case idx of Nothing -> ""
+                             Just idxExpr -> sym SLSquare ++ exprToXML idxExpr ++ sym SRSquare
+
 statementToXML :: AStatement -> String
 statementToXML (ALet var idx expr) = "<letStatement>"
   ++ kw KLet
-  ++ identToXML var
-  ++ idxStr
+  ++ varWithIdxToXML var idx
   ++ sym SEQ
   ++ exprToXML expr
   ++ sym SSemicolon
   ++ "</letStatement>"
-  where idxStr = case idx of Nothing -> ""
-                             Just idxExpr -> sym SLSquare ++ exprToXML idxExpr ++ sym SRSquare
 statementToXML (AIf cond ifBody elseBody) = "<ifStatement>"
   ++ kw KIf
   ++ sym SLParen
@@ -113,12 +115,33 @@ statementsToXML stmts = "<statements>"
   ++ "</statements>"
 
 exprToXML :: AExpression -> String
-exprToXML _ = ""
+exprToXML (AExpression term others) = "<expression>"
+  ++ termToXML term
+  ++ (concat $ map (\(o, t) -> opToXML o ++ termToXML t) others)
+  ++ "</expression>"
 
 exprListToXML :: [AExpression] -> String
 exprListToXML exprs = "<expressionList>"
   ++ intercalate (sym SComma) (map exprToXML exprs) 
   ++ "</expressionList>"
+
+termToXML :: ATerm -> String
+termToXML term = "<term>" ++ termToXMLHelp term ++ "</term>"
+
+keywordConstToXML :: AKeywordConst -> String
+keywordConstToXML AKTrue = kw KTrue
+keywordConstToXML AKFalse = kw KFalse
+keywordConstToXML AKNull = kw KNull
+keywordConstToXML AKThis = kw KThis
+
+termToXMLHelp :: ATerm -> String
+termToXMLHelp (AIntConst int) = "<integerConstant>" ++ show int ++ "</integerConstant>"
+termToXMLHelp (AStrConst str) = "<stringConstant>" ++ str ++ "</stringConstant>"
+termToXMLHelp (AKey key) = keywordConstToXML key
+termToXMLHelp (AVarName var idx) = varWithIdxToXML var idx
+termToXMLHelp (ASub call) = subroutineCallToXML call
+termToXMLHelp (AParenExpr expr) = sym SLParen ++ exprToXML expr ++ sym SRParen
+termToXMLHelp (AUnaryOp term) = sym SMinus ++ termToXML term
 
 subroutineBodyToXML :: ASubroutineBody -> String
 subroutineBodyToXML (ASubroutineBody decs stmts) = "<subroutineBody>"
@@ -133,9 +156,20 @@ kindToXML AConstructor = kw KConstructor
 kindToXML AFunction = kw KFunction
 kindToXML AMethod = kw KMethod
 
-funcReturnToXML :: AFuncReturn -> String
+funcReturnToXML :: AFuncReturn -> String 
 funcReturnToXML (AFuncReturnType t) = typeToXML t
 funcReturnToXML AFuncReturnVoid = kw KVoid
+
+opToXML :: AOp -> String
+opToXML AOPlus = sym SPlus
+opToXML AOMinus = sym SMinus
+opToXML AOStar = sym SStar
+opToXML AOSlash = sym SSlash
+opToXML AOAnd = sym SAmp
+opToXML AOBar = sym SBar
+opToXML AOLT = sym SLT
+opToXML AOGT = sym SGT
+opToXML AOEq = sym SEQ
 
 typeToXML :: AType -> String
 typeToXML AInt = "<keyword>int</keyword>"
