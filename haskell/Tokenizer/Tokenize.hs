@@ -78,6 +78,7 @@ toSymbol '|' = Just SBar
 toSymbol '<' = Just SLT
 toSymbol '>' = Just SGT
 toSymbol '=' = Just SEQ
+toSymbol '~' = Just STilde
 toSymbol _ = Nothing
 
 stripComment :: String -> String

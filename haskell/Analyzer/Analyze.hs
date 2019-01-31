@@ -9,7 +9,7 @@ import Tokenizer.Tokenize (tokenize)
 import Debug.Trace
 
 analyze :: [Token] -> AClass
-analyze = error "not implemented"
+analyze tokens = fst $ runParser parseClass tokens
 
 parseIdent :: Parser String
 parseIdent = Parser helper
@@ -22,6 +22,12 @@ eatSym sym = Parser helper
   where
     helper ((TSymbol sym):rest) = ((), rest)
     helper _ = error $ "expected symbol " ++ show sym
+
+eatKW :: Keyword -> Parser ()
+eatKW kw = Parser helper
+  where
+    helper ((TKeyword kw):rest) = ((), rest)
+    helper _ = error $ "expected keyword " ++ show kw
 
 parseOp :: Parser AOp
 parseOp = Parser $ \(token:rest) -> (helper token, rest)
@@ -78,8 +84,6 @@ parseExpressionList = Parser $ \tokens ->
 
 parseTerm :: Parser ATerm
 parseTerm = Parser termHelper
--- parseTerm = Parser $ \tokens -> (trace (show tokens) $ termHelper tokens)
-
 
 termHelper :: [Token] -> (ATerm, [Token])
 termHelper ((TIntConst int):rest) = (AIntConst int, rest)
@@ -100,7 +104,10 @@ termHelper ((TIdentifier str):rest) = (AVarName str Nothing, rest)
 termHelper ((TSymbol SLParen):rest) = 
   runParser (AParenExpr <$> parseExpression <* (eatSym SRParen)) rest
 termHelper ((TSymbol SMinus):rest) =
-  runParser (AUnaryOp <$> parseTerm) rest
+  runParser (AUnaryOp AUOMinus <$> parseTerm) rest
+termHelper ((TSymbol STilde):rest) =
+  runParser (AUnaryOp AUOTilde <$> parseTerm) rest
+termHelper other = error ("unexpected keyword term tokens " ++ show other)
 
 parseStatement :: Parser AStatement
 parseStatement = Parser statementHelper
@@ -117,12 +124,8 @@ statementHelper ((TKeyword KLet):(TIdentifier varName):(TSymbol SLSquare):rest) 
   ) rest
 statementHelper ((TKeyword KLet):(TIdentifier varName):rest) = 
   runParser ((ALet varName Nothing) <$> ((eatSym SEQ) *> parseExpression <* (eatSym SSemicolon))) rest
-statementHelper ((TKeyword KDo):(TIdentifier cls):(TSymbol SDot):(TIdentifier fun):(TSymbol SLParen):rest) =
-  let (exprs, otherTokens) = runParser parseExpressionList rest
-  in (ADo $ ASubroutineCall (Just cls) fun exprs, otherTokens) 
-statementHelper ((TKeyword KDo):(TIdentifier fun):(TSymbol SLParen):rest) =
-  let (exprs, otherTokens) = runParser parseExpressionList rest
-  in (ADo $ ASubroutineCall Nothing fun exprs, otherTokens)
+statementHelper ((TKeyword KDo):rest) =
+  runParser (ADo <$> parseSubroutineCall <* (eatSym SSemicolon)) rest
 statementHelper ((TKeyword KReturn):(TSymbol SSemicolon):rest) = (AReturn Nothing, rest)
 statementHelper ((TKeyword KReturn):rest) =
   runParser (AReturn <$> ((Just <$> parseExpression) <* (eatSym SSemicolon))) rest
@@ -130,6 +133,23 @@ statementHelper ((TKeyword KWhile):(TSymbol SLParen):rest) =
   runParser (AWhile <$> parseExpression <* (eatSym SRParen) <* (eatSym SRCurl) <*> parseStatementList) rest
 statementHelper ((TKeyword KIf):(TSymbol SLParen):rest) = 
   runParser (AIf <$> parseExpression <* (eatSym SRParen) <* (eatSym SRCurl) <*> parseStatementList <*> parseElse) rest
+statementHelper other = error ("unexpected statement tokens " ++ show other)
+
+parseSubroutineCall :: Parser ASubroutineCall
+parseSubroutineCall = Parser $ \tokens -> case tokens of
+  ((TIdentifier cls):(TSymbol SDot):_) -> runParser withParser tokens
+  _ -> runParser withoutParser tokens
+  where
+    withParser = ASubroutineCall
+      <$> (Just <$> parseIdent)
+      <* (eatSym SDot)
+      <*> parseIdent
+      <* (eatSym SLParen)
+      <*> parseExpressionList
+    withoutParser = (ASubroutineCall Nothing)
+      <$> parseIdent
+      <* (eatSym SLParen)
+      <*> parseExpressionList
 
 parseElse :: Parser (Maybe [AStatement])
 parseElse = Parser $ \tokens -> case tokens of
@@ -146,11 +166,12 @@ parseStatementList = Parser $ \tokens ->
         ((stmt:stmtList), leftovers)
 
 parseType :: Parser AType
-parseType = Parser $ \(theType:rest) -> case theType of
+parseType = Parser $ \all@(theType:rest) -> case theType of
   (TKeyword KInt) -> (AInt, rest)
   (TKeyword KChar) -> (AChar, rest)
   (TKeyword KBoolean) -> (ABoolean, rest)
   (TIdentifier name) -> (AClassName name, rest)
+  _ -> error ("unexpected type tokens " ++ show all)
 
 parseVarNames :: Parser [String]
 parseVarNames = Parser $ \((TIdentifier name):rest) -> case rest of
@@ -185,11 +206,22 @@ parseVarDecs = Parser $ \tokens -> case tokens of
 parseParameter :: Parser AParameter
 parseParameter = AParameter <$> parseType <*> parseIdent
 
+parseCommaParameter :: Parser AParameter
+parseCommaParameter = AParameter <$ (eatSym SComma) <*> parseType <*> parseIdent
+
+parseRestParameters :: Parser [AParameter]
+parseRestParameters = Parser $ \tokens -> case tokens of
+  ((TSymbol SRParen):rest) -> ([], rest)
+  all@((TSymbol SComma):_) -> let (firstParam, afterFirst) = runParser parseCommaParameter all
+                                  (restParams, remaining) = runParser parseRestParameters afterFirst
+                              in (firstParam:restParams, remaining)
+  others -> error ("unexpected tokens when parsing rest of param list " ++ show others)
+
 parseParameters :: Parser [AParameter]
 parseParameters = Parser $ \tokens -> case tokens of
   ((TSymbol SRParen):rest) -> ([], rest)
   others -> let (firstParam, afterFirst) = runParser parseParameter others
-                (restParams, remaining) = runParser parseParameters afterFirst
+                (restParams, remaining) = runParser parseRestParameters afterFirst
             in (firstParam:restParams, remaining)
 
 parseFuncReturn :: Parser AFuncReturn
@@ -224,7 +256,8 @@ parseSubroutineDecs = Parser $ \tokens -> case tokens of
 
 parseClass :: Parser AClass
 parseClass = AClass
-  <$> parseIdent
+  <$ (eatKW KClass)
+  <*> parseIdent
   <* (eatSym SLCurl)
   <*> parseClassVarDecs
   <*> parseSubroutineDecs

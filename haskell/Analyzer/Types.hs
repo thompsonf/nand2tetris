@@ -35,7 +35,7 @@ data ATerm = AIntConst Int
   | AVarName String (Maybe AExpression)
   | ASub ASubroutineCall
   | AParenExpr AExpression
-  | AUnaryOp ATerm -- minus is only unary op
+  | AUnaryOp AUOp ATerm -- minus is only unary op
   deriving Show
 
 data ASubroutineCall = ASubroutineCall (Maybe String) String [AExpression]
@@ -43,4 +43,6 @@ data ASubroutineCall = ASubroutineCall (Maybe String) String [AExpression]
 data AKeywordConst = AKTrue | AKFalse | AKNull | AKThis
   deriving Show
 data AOp = AOPlus | AOMinus | AOStar | AOSlash | AOAnd | AOBar | AOLT | AOGT | AOEq
+  deriving Show
+data AUOp = AUOMinus | AUOTilde
   deriving Show
