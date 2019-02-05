@@ -12,7 +12,7 @@ data AFuncReturn = AFuncReturnType AType | AFuncReturnVoid
 data ASubroutineDec = ASubroutineDec ASubroutineKind AFuncReturn String [AParameter] ASubroutineBody
   deriving Show
 data ASubroutineKind = AConstructor | AFunction | AMethod
-  deriving Show
+  deriving (Eq, Show)
 data AParameter = AParameter AType String
   deriving Show
 data ASubroutineBody = ASubroutineBody [AVarDec] [AStatement]

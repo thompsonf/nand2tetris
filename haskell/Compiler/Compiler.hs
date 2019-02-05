@@ -17,5 +17,19 @@ addClassVarDec :: SymTab -> AClassVarDec -> SymTab
 addClassVarDec table (AStatic theType names) = addMany (add VStatic theType) names
 addClassVarDec table (AField theType names) = addMany (add VField theType) names
 
+addVarDec :: SymTab -> AVarDec -> SymTab
+addVarDec table (AVarDec theType names) = addMany (add VLocal theType) names
+
+addParam :: SymTab -> AParameter -> SymTab
+addParam table (AParameter theType name) = add VArgument theType table name
+
+addSubroutineDec :: String -> SymTab -> ASubroutineDec -> SymTab
+addSubroutineDec cName table (ASubroutineDec subKind _ _ params (ASubroutineBody localDecs _)) = withBody
+  where
+    withThis = if subKind == AMethod then add VArgument (AClassName cName) table "this" else table
+    withParams = foldl' addParam withThis params
+    withBody = foldl' addVarDec withParams localDecs
+
+
 getClassSymTab :: [AClassVarDec] -> SymTab
 getClassSymTab decs = foldl' addClassVarDec [] decs
