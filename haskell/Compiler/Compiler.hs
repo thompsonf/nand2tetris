@@ -138,7 +138,7 @@ compileTerm t (AVarName var (Just idxExpr)) = (getPush t var) ++
 
 compileSubDec :: SymTab -> String -> Int -> ASubroutineDec -> [Command]
 compileSubDec cTable cName nFields dec@(ASubroutineDec subKind ret sName params (ASubroutineBody localDecs stmts)) =
-  [CFun $ Fun (getFullName (Just cName) sName) nLocals] ++ inits ++ compiledBody
+  [CFun $ Fun (getFullName (Just cName) sName) nLocals] ++ inits ++ (concat compiledBody)
   where
     symTab = addSubDec cTable cName dec
     nLocalsOfDec (AVarDec _ names) = length names

@@ -1,13 +1,14 @@
 import Analyzer.Analyze (analyze)
 import Compiler.Compiler (compile)
 import Tokenizer.Tokenize (tokenize)
+import VM.Pretty (prettyCommand)
 
 import System.Directory (doesDirectoryExist, listDirectory)
 import System.Environment
-import System.FilePath (takeExtension, (</>))
+import System.FilePath (replaceExtension, takeExtension, (</>))
 
 main = do
-  [inputoutput <- getArgs
+  [input] <- getArgs
   isDir <- doesDirectoryExist input
   files <- if isDir
     then getSourceFiles input
@@ -24,6 +25,5 @@ genCodeForFile :: String -> IO ()
 genCodeForFile file = do
   let output = replaceExtension file ".vm"
   source <- readFile file
-  let commands = compile . analyze . tokenize source
-  -- writeFile output $ unlines (map prettyCommand commands)
-  return ()
+  let lines = (map prettyCommand) . compile . analyze . tokenize $ source
+  writeFile output $ unlines lines

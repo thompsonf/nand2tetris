@@ -27,9 +27,21 @@ prettyMem :: Memory -> String
 prettyMem (Push seg int) = unwords ["push", prettySegment seg, show int]
 prettyMem (Pop seg int) = unwords ["pop", prettySegment seg, show int]
 
+prettyFlow :: Flow -> String
+prettyFlow (Label lbl) = "label " ++ lbl
+prettyFlow (Goto lbl) = "goto " ++ lbl
+prettyFlow (IfGoto lbl) = "if-goto " ++ lbl
+
+prettyFunction :: Function -> String
+prettyFunction (Fun fun nLocals) = "function " ++ fun ++ " " ++ (show nLocals)
+prettyFunction (Call fun nArgs) = "call " ++ fun ++ " " ++ (show  nArgs)
+prettyFunction Return = "return"
+
 prettyCommand :: Command -> String
 prettyCommand (CL log) = prettyLog log
 prettyCommand (CM mem) = prettyMem mem
+prettyCommand (CF flow) = prettyFlow flow
+prettyCommand (CFun fun) = prettyFunction fun
 
 prettyComment :: String -> String
 prettyComment com = "// " ++ com
