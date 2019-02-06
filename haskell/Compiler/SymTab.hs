@@ -3,7 +3,7 @@ module Compiler.SymTab where
 import Analyzer.Types (AType)
 import Data.List (find)
 
-data VarKind = VStatic | VField | VArgument | VLocal
+data VarKind = VStatic | VField | VArgument | VLocal | VPointer
   deriving (Eq, Show)
 
 data SymVar = SymVar String AType VarKind Int

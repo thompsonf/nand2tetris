@@ -12,8 +12,12 @@ import VM.Types
 type Context = State (String, Int)
 
 compile :: AClass -> [Command]
-compile (AClass cName varDecs subDecs) = concat $ map (compileSubDec symTab cName) subDecs
-  where symTab = foldl' addClassVarDec [] varDecs
+compile (AClass cName varDecs subDecs) = concat $ map (compileSubDec symTab cName nFields) subDecs
+  where
+    symTab = foldl' addClassVarDec [] varDecs
+    nFieldsOfDec dec = case dec of (AField _ names) -> length names
+                                   (AStatic _ _) -> 0
+    nFields = sum $ map nFieldsOfDec varDecs
 
 getFullName :: Maybe String -> String -> String
 getFullName (Just cName) sName = cName ++ "." ++ sName
@@ -30,6 +34,7 @@ toSegment VStatic = Static
 toSegment VField = This
 toSegment VArgument = Argument
 toSegment VLocal = Local
+toSegment VPointer = Pointer
 
 getPop :: SymTab -> String -> [Command]
 getPop symTab var = case getSym symTab var of
@@ -127,16 +132,22 @@ compileTerm t (ASub call) = compileCall t call
 compileTerm t (AParenExpr expr) = compileExpr t expr
 compileTerm t (AUnaryOp uop term) = (compileTerm t term) ++ (compileUOp uop)
 compileTerm t (AVarName var Nothing) = getPush t var
-compileTerm t (AVarName var (Just idxExpr)) = (getPush t var) ++ (compileExpr t idxExpr) ++ [CL Add]
+compileTerm t (AVarName var (Just idxExpr)) = (getPush t var) ++
+  (compileExpr t idxExpr) ++
+  [CL Add, CM $ Pop Pointer 1, CM $ Push That 0]
 
-compileSubDec :: SymTab -> String -> ASubroutineDec -> [Command]
-compileSubDec cTable cName dec@(ASubroutineDec subKind ret sName params (ASubroutineBody localDecs statements)) =
-  (CFun $ Fun (getFullName (Just cName) sName) nLocals):compiledBody
+compileSubDec :: SymTab -> String -> Int -> ASubroutineDec -> [Command]
+compileSubDec cTable cName nFields dec@(ASubroutineDec subKind ret sName params (ASubroutineBody localDecs stmts)) =
+  [CFun $ Fun (getFullName (Just cName) sName) nLocals] ++ inits ++ compiledBody
   where
     symTab = addSubDec cTable cName dec
     nLocalsOfDec (AVarDec _ names) = length names
     nLocals = sum $ map nLocalsOfDec localDecs
-    compiledBody = error "not implemented"
+    inits = case subKind of AMethod -> [CM $ Push Argument 0, CM $ Pop Pointer 0]
+                            AConstructor -> compileCall symTab (ASubroutineCall (Just "Memory") "alloc" [AExpression (AIntConst nFields) []]) ++
+                              [CM $ Pop Pointer 0]
+                            AFunction -> []
+    compiledBody = evalState (sequence $ map (compileStatement symTab) stmts) (getFullName (Just cName) sName, 0)
 
 addMany :: (SymTab -> String -> SymTab) -> [String] -> SymTab
 addMany update strings = foldl' update [] strings
@@ -154,7 +165,7 @@ addParam table (AParameter theType name) = addSym VArgument theType table name
 addSubDec :: SymTab -> String -> ASubroutineDec -> SymTab
 addSubDec table cName (ASubroutineDec subKind _ _ params (ASubroutineBody localDecs _)) = withBody
   where
-    withThis = if subKind == AMethod then addSym VArgument (AClassName cName) table "this" else table
+    withThis = if subKind /= AFunction then addSym VPointer (AClassName cName) table "this" else table
     withParams = foldl' addParam withThis params
     withBody = foldl' addVarDec withParams localDecs
 
