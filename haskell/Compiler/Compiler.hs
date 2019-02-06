@@ -39,12 +39,12 @@ toSegment VPointer = Pointer
 getPop :: SymTab -> String -> [Command]
 getPop symTab var = case getSym symTab var of
   Just (SymVar _ _ vk idx) -> [CM $ Pop (toSegment vk) idx]
-  Nothing -> error $ "Trying to pop to variable not in symbol table: " ++ var
+  Nothing -> error $ "Trying to pop to variable not in symbol table: " ++ var ++ ". Table was: " ++ (show symTab)
 
 getPush :: SymTab -> String -> [Command]
 getPush symTab var = case getSym symTab var of
   Just (SymVar _ _ vk idx) -> [CM $ Push (toSegment vk) idx]
-  Nothing -> error $ "Trying to push variable not in symbol table: " ++ var
+  Nothing -> error $ "Trying to push variable not in symbol table: " ++ var ++ ". Table was: " ++ (show symTab)
 
 compileStatement :: SymTab -> AStatement -> Context [Command]
 compileStatement t (ALet var Nothing expr) =  return $ (compileExpr t expr) ++ (getPop t var)
@@ -96,8 +96,8 @@ compileOp AOBar = [CL Or]
 compileOp AOLT = [CL Lt]
 compileOp AOGT = [CL Gt]
 compileOp AOEq = [CL Eq]
-compileOp AOStar = [CFun $ Fun "Math.multiply" 2]
-compileOp AOSlash = [CFun $ Fun "Math.divide" 2]
+compileOp AOStar = [CFun $ Call "Math.multiply" 2]
+compileOp AOSlash = [CFun $ Call "Math.divide" 2]
 
 compileUOp :: AUOp -> [Command]
 compileUOp AUOMinus = [CL Neg]
@@ -108,12 +108,14 @@ compileExpr t (AExpression term opsTerms) = (compileTerm t term) ++ (concat $ ma
   where compPair (op, term2) = (compileTerm t term2) ++ (compileOp op)
 
 compileCall :: SymTab -> ASubroutineCall -> [Command]
-compileCall t (ASubroutineCall mClass sName exprs) = thisExpr ++
-  (concat $ map (compileExpr t) exprs) ++
-  [CFun $ Call (getFullName mClass sName) (length exprs + argAdd)]
-  where (thisExpr, argAdd) = case mClass of Nothing -> ([], 0)
-                                            Just cName -> case getSym t cName of Just _ -> (getPush t "this", 1)
-                                                                                 Nothing -> ([], 0)
+compileCall t (ASubroutineCall mClass sName exprs) = case sv of
+  Just (SymVar var (AClassName cOfObj) _ _) -> (getPush t var) ++ args ++ [CFun $ Call (getFullName (Just cOfObj) sName) (length exprs + 1)]
+  _ -> args ++ [CFun $ Call (getFullName mClass sName) (length exprs)]
+  where
+    args = concat $ map (compileExpr t) exprs
+    sv = case mClass of
+      Nothing -> (getSym t "this")
+      Just cOrVName -> (getSym t cOrVName)
 
 compileKey :: SymTab -> AKeywordConst -> [Command]
 compileKey _ AKTrue = [CM $ Push Constant 1, CL Neg]
@@ -125,8 +127,8 @@ compileTerm :: SymTab -> ATerm -> [Command]
 compileTerm _ (AIntConst int) = [CM $ Push Constant int]
 compileTerm t (AStrConst str) = newCall ++ (concat $ map appendCall str)
   where
-    newCall = compileCall t $ ASubroutineCall (Just "String") "new" [AExpression (AIntConst $ length str) []]
-    appendCall char = compileCall t $ ASubroutineCall (Just "String") "appendChar" [AExpression (AIntConst $ ord char) []]
+    newCall = [CM $ Push Constant (length str), CFun $ Call "String.new" 1]
+    appendCall char = [CM $ Push Constant (ord char), CFun $ Call "String.appendChar" 2]
 compileTerm t (AKey key) = compileKey t key
 compileTerm t (ASub call) = compileCall t call
 compileTerm t (AParenExpr expr) = compileExpr t expr
@@ -149,15 +151,15 @@ compileSubDec cTable cName nFields dec@(ASubroutineDec subKind ret sName params 
                             AFunction -> []
     compiledBody = evalState (sequence $ map (compileStatement symTab) stmts) (getFullName (Just cName) sName, 0)
 
-addMany :: (SymTab -> String -> SymTab) -> [String] -> SymTab
-addMany update strings = foldl' update [] strings
+addMany :: SymTab -> (SymTab -> String -> SymTab) -> [String] -> SymTab
+addMany table update strings = foldl' update table strings
 
 addClassVarDec :: SymTab -> AClassVarDec -> SymTab
-addClassVarDec table (AStatic theType names) = addMany (addSym VStatic theType) names
-addClassVarDec table (AField theType names) = addMany (addSym VField theType) names
+addClassVarDec table (AStatic theType names) = addMany table (addSym VStatic theType) names
+addClassVarDec table (AField theType names) = addMany table (addSym VField theType) names
 
 addVarDec :: SymTab -> AVarDec -> SymTab
-addVarDec table (AVarDec theType names) = addMany (addSym VLocal theType) names
+addVarDec table (AVarDec theType names) = addMany table (addSym VLocal theType) names
 
 addParam :: SymTab -> AParameter -> SymTab
 addParam table (AParameter theType name) = addSym VArgument theType table name

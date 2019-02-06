@@ -7,6 +7,7 @@ data VarKind = VStatic | VField | VArgument | VLocal | VPointer
   deriving (Eq, Show)
 
 data SymVar = SymVar String AType VarKind Int
+  deriving (Show)
 
 type SymTab = [SymVar]
 
