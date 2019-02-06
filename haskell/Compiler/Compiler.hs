@@ -5,17 +5,19 @@ module Compiler.Compiler
 import Analyzer.Types
 import Compiler.SymTab
 import Control.Monad.State
+import Data.Char (ord)
 import Data.List (foldl')
 import VM.Types
 
 type Context = State (String, Int)
 
 compile :: AClass -> [Command]
-compile (AClass cName varDecs subDecs) = concat $ map (compileSubDec cName symTab) subDecs
+compile (AClass cName varDecs subDecs) = concat $ map (compileSubDec symTab cName) subDecs
   where symTab = foldl' addClassVarDec [] varDecs
 
-fullName :: String -> String -> String
-fullName cName sName = cName ++ "." ++ sName
+getFullName :: Maybe String -> String -> String
+getFullName (Just cName) sName = cName ++ "." ++ sName
+getFullName Nothing sName = sName
 
 getLbl :: Context String
 getLbl = do
@@ -23,21 +25,118 @@ getLbl = do
   put (fullName, lblCount + 1)
   return $ fullName ++ "##" ++ (show lblCount)
 
-compileStatement :: AStatement -> Context [Command]
-compileStatement (ALet var mArray expr) = error "not implemented"
-compileStatement (ADo call) = error "not implemented"
-compileStatement (AReturn mExpr) = error "not implemented"
-compileStatement (AIf expr ifStmts mElseStmts) = error "not implemented"
-compileStatement (AWhile expr stmts) = error "not implemented"
+toSegment :: VarKind -> Segment
+toSegment VStatic = Static
+toSegment VField = This
+toSegment VArgument = Argument
+toSegment VLocal = Local
 
-compileSubDec :: String -> SymTab -> ASubroutineDec -> [Command]
-compileSubDec cName cTable dec@(ASubroutineDec subKind ret sName params (ASubroutineBody localDecs statements)) =
-  (CFun $ Fun (fullName cName sName) nLocals):compiledBody
+getPop :: SymTab -> String -> [Command]
+getPop symTab var = case getSym symTab var of
+  Just (SymVar _ _ vk idx) -> [CM $ Pop (toSegment vk) idx]
+  Nothing -> error $ "Trying to pop to variable not in symbol table: " ++ var
+
+getPush :: SymTab -> String -> [Command]
+getPush symTab var = case getSym symTab var of
+  Just (SymVar _ _ vk idx) -> [CM $ Push (toSegment vk) idx]
+  Nothing -> error $ "Trying to push variable not in symbol table: " ++ var
+
+compileStatement :: SymTab -> AStatement -> Context [Command]
+compileStatement t (ALet var Nothing expr) =  return $ (compileExpr t expr) ++ (getPop t var)
+compileStatement t (ALet var (Just idxExpr) expr) = return $ (getPush t var) ++
+  (compileExpr t idxExpr) ++
+  [CL Add] ++
+  (compileExpr t expr) ++
+  [CM $ Pop Temp 0, CM $ Pop Pointer 1, CM $ Push Temp 0, CM $ Pop That 0]
+
+compileStatement t (ADo call) = return $ (compileCall t call) ++ [CM $ Pop Temp 0]
+
+compileStatement t (AReturn Nothing) = return [CM $ Push Constant 0, CFun Return]
+compileStatement t (AReturn (Just expr)) = return $ (compileExpr t expr) ++ [CFun Return]
+
+compileStatement t (AWhile expr stmts) = do
+  startLbl <- getLbl
+  endLbl <- getLbl
+  compiledBody <- sequence $ map (compileStatement t) stmts
+  return $ [CF $ Label startLbl] ++
+    (compileExpr t expr) ++
+    [CL Not, CF $ IfGoto endLbl] ++
+    (concat compiledBody) ++
+    [CF $ Goto startLbl, CF $ Label endLbl]
+
+compileStatement t (AIf expr ifStmts Nothing) = do
+  endLbl <- getLbl
+  compiledIf <- sequence $ map (compileStatement t) ifStmts
+  return $ (compileExpr t expr) ++
+    [CL Not, CF $ IfGoto endLbl] ++
+    (concat compiledIf) ++
+    [CF $ Label endLbl]
+compileStatement t (AIf expr ifStmts (Just elseStmts)) = do
+  elseLbl <- getLbl
+  endLbl <- getLbl
+  compiledIf <- sequence $ map (compileStatement t) ifStmts
+  compiledElse <- sequence $ map (compileStatement t) elseStmts
+  return $ (compileExpr t expr) ++
+    [CL Not, CF $ IfGoto elseLbl] ++
+    (concat compiledIf) ++
+    [CF $ Goto endLbl, CF $ Label elseLbl] ++
+    (concat compiledElse) ++
+    [CF $ Label endLbl]
+
+compileOp :: AOp -> [Command]
+compileOp AOPlus = [CL Add]
+compileOp AOMinus = [CL Sub]
+compileOp AOAnd = [CL And]
+compileOp AOBar = [CL Or]
+compileOp AOLT = [CL Lt]
+compileOp AOGT = [CL Gt]
+compileOp AOEq = [CL Eq]
+compileOp AOStar = [CFun $ Fun "Math.multiply" 2]
+compileOp AOSlash = [CFun $ Fun "Math.divide" 2]
+
+compileUOp :: AUOp -> [Command]
+compileUOp AUOMinus = [CL Neg]
+compileUOp AUOTilde = [CL Not]
+
+compileExpr :: SymTab -> AExpression -> [Command]
+compileExpr t (AExpression term opsTerms) = (compileTerm t term) ++ (concat $ map compPair opsTerms)
+  where compPair (op, term2) = (compileTerm t term2) ++ (compileOp op)
+
+compileCall :: SymTab -> ASubroutineCall -> [Command]
+compileCall t (ASubroutineCall mClass sName exprs) = thisExpr ++
+  (concat $ map (compileExpr t) exprs) ++
+  [CFun $ Call (getFullName mClass sName) (length exprs + argAdd)]
+  where (thisExpr, argAdd) = case mClass of Nothing -> ([], 0)
+                                            Just cName -> case getSym t cName of Just _ -> (getPush t "this", 1)
+                                                                                 Nothing -> ([], 0)
+
+compileKey :: SymTab -> AKeywordConst -> [Command]
+compileKey _ AKTrue = [CM $ Push Constant 1, CL Neg]
+compileKey _ AKFalse = [CM $ Push Constant 0]
+compileKey _ AKNull = [CM $ Push Constant 0]
+compileKey t AKThis = getPush t "this"
+
+compileTerm :: SymTab -> ATerm -> [Command]
+compileTerm _ (AIntConst int) = [CM $ Push Constant int]
+compileTerm t (AStrConst str) = newCall ++ (concat $ map appendCall str)
   where
-    symTab = addSubDec cName cTable dec
+    newCall = compileCall t $ ASubroutineCall (Just "String") "new" [AExpression (AIntConst $ length str) []]
+    appendCall char = compileCall t $ ASubroutineCall (Just "String") "appendChar" [AExpression (AIntConst $ ord char) []]
+compileTerm t (AKey key) = compileKey t key
+compileTerm t (ASub call) = compileCall t call
+compileTerm t (AParenExpr expr) = compileExpr t expr
+compileTerm t (AUnaryOp uop term) = (compileTerm t term) ++ (compileUOp uop)
+compileTerm t (AVarName var Nothing) = getPush t var
+compileTerm t (AVarName var (Just idxExpr)) = (getPush t var) ++ (compileExpr t idxExpr) ++ [CL Add]
+
+compileSubDec :: SymTab -> String -> ASubroutineDec -> [Command]
+compileSubDec cTable cName dec@(ASubroutineDec subKind ret sName params (ASubroutineBody localDecs statements)) =
+  (CFun $ Fun (getFullName (Just cName) sName) nLocals):compiledBody
+  where
+    symTab = addSubDec cTable cName dec
     nLocalsOfDec (AVarDec _ names) = length names
     nLocals = sum $ map nLocalsOfDec localDecs
-    compiledBody = []
+    compiledBody = error "not implemented"
 
 addMany :: (SymTab -> String -> SymTab) -> [String] -> SymTab
 addMany update strings = foldl' update [] strings
@@ -52,8 +151,8 @@ addVarDec table (AVarDec theType names) = addMany (addSym VLocal theType) names
 addParam :: SymTab -> AParameter -> SymTab
 addParam table (AParameter theType name) = addSym VArgument theType table name
 
-addSubDec :: String -> SymTab -> ASubroutineDec -> SymTab
-addSubDec cName table (ASubroutineDec subKind _ _ params (ASubroutineBody localDecs _)) = withBody
+addSubDec :: SymTab -> String -> ASubroutineDec -> SymTab
+addSubDec table cName (ASubroutineDec subKind _ _ params (ASubroutineBody localDecs _)) = withBody
   where
     withThis = if subKind == AMethod then addSym VArgument (AClassName cName) table "this" else table
     withParams = foldl' addParam withThis params

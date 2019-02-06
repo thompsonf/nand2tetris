@@ -35,7 +35,7 @@ data ATerm = AIntConst Int
   | AVarName String (Maybe AExpression)
   | ASub ASubroutineCall
   | AParenExpr AExpression
-  | AUnaryOp AUOp ATerm -- minus is only unary op
+  | AUnaryOp AUOp ATerm
   deriving Show
 
 data ASubroutineCall = ASubroutineCall (Maybe String) String [AExpression]
