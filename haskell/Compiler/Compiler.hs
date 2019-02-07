@@ -167,7 +167,12 @@ addParam table (AParameter theType name) = addSym VArgument theType table name
 addSubDec :: SymTab -> String -> ASubroutineDec -> SymTab
 addSubDec table cName (ASubroutineDec subKind _ _ params (ASubroutineBody localDecs _)) = withBody
   where
-    withThis = if subKind /= AFunction then addSym VPointer (AClassName cName) table "this" else table
-    withParams = foldl' addParam withThis params
+    -- HACK: When in a constructor, method calls without an explicit class name cause problems.
+    -- If we see `do draw();`, how do we know what class to prefix it with? When compiling subroutine calls,
+    -- the only context we have is the symbol table. Adding "this" into the Symbol table allows us to
+    -- retrieve the class.
+    withThisPtr = if subKind == AConstructor then addSym VPointer (AClassName cName) table "this" else table
+    withThisArg = if subKind == AMethod then addSym VArgument (AClassName cName) withThisPtr "this" else withThisPtr
+    withParams = foldl' addParam withThisArg params
     withBody = foldl' addVarDec withParams localDecs
 

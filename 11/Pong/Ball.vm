@@ -28,7 +28,7 @@ return
 function Ball.dispose 0
 push argument 0
 pop pointer 0
-push pointer 0
+push argument 0
 call Memory.deAlloc 1
 pop temp 0
 push constant 0
@@ -40,7 +40,7 @@ push constant 1
 neg
 call Screen.setColor 1
 pop temp 0
-push pointer 0
+push argument 0
 call Ball.draw 1
 pop temp 0
 push constant 0
@@ -51,7 +51,7 @@ pop pointer 0
 push constant 0
 call Screen.setColor 1
 pop temp 0
-push pointer 0
+push argument 0
 call Ball.draw 1
 pop temp 0
 push constant 0
@@ -86,11 +86,11 @@ return
 function Ball.setDestination 3
 push argument 0
 pop pointer 0
-push argument 0
+push argument 1
 push this 0
 sub
 pop this 2
-push argument 1
+push argument 2
 push this 1
 sub
 pop this 3
@@ -114,21 +114,21 @@ pop local 0
 push local 2
 pop local 1
 push this 1
-push argument 1
+push argument 2
 lt
 pop this 8
 push this 0
-push argument 0
+push argument 1
 lt
 pop this 9
 goto Ball.setDestination##1
 label Ball.setDestination##0
 push this 0
-push argument 0
+push argument 1
 lt
 pop this 8
 push this 1
-push argument 1
+push argument 2
 lt
 pop this 9
 label Ball.setDestination##1
@@ -153,7 +153,7 @@ return
 function Ball.move 0
 push argument 0
 pop pointer 0
-push pointer 0
+push argument 0
 call Ball.hide 1
 pop temp 0
 push this 4
@@ -284,7 +284,7 @@ pop this 14
 push this 13
 pop this 1
 label Ball.move##17
-push pointer 0
+push argument 0
 call Ball.show 1
 pop temp 0
 push this 14
@@ -300,7 +300,7 @@ push this 3
 push constant 10
 call Math.divide 2
 pop local 3
-push argument 0
+push argument 1
 push constant 0
 eq
 not
@@ -313,14 +313,14 @@ push this 2
 push constant 0
 lt
 not
-push argument 0
+push argument 1
 push constant 1
 eq
 and
 push this 2
 push constant 0
 lt
-push argument 0
+push argument 1
 push constant 1
 neg
 eq
@@ -418,7 +418,7 @@ pop local 0
 label Ball.bounce##9
 label Ball.bounce##7
 label Ball.bounce##5
-push pointer 0
+push argument 0
 push local 0
 push local 1
 call Ball.setDestination 3

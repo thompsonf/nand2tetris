@@ -1,0 +1,22 @@
+class Main {
+    function void main() {
+        var int x;
+        let x = 5;
+        if (x = 5) {
+            do Output.printString("1x was 5;");
+        } else {
+            do Output.printString("1x was not 5;");
+        }
+        if (~(x = 5)) {
+            do Output.printString("2x was not 5;");
+        } else {
+            do Output.printString("2x was 5;");
+        }
+        while (x = 5) {
+          do Output.printString("still 5");
+          let x = x + 1;
+        }
+        do Output.printString("done");
+        return;
+    }
+}
