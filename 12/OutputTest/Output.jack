@@ -17,10 +17,18 @@
 class Output {
 
     // Character map for displaying characters
-    static Array charMaps; 
+    static Array charMaps;
+    static int row;
+    static boolean rowIsEven;
+    static int col;
 
     /** Initializes the screen, and locates the cursor at the screen's top-left. */
     function void init() {
+      do Output.initMap();
+      let row = 0;
+      let rowIsEven = true;
+      let col = 0;
+      return;
     }
 
     // Initializes the character map array
@@ -71,7 +79,7 @@ class Output {
         do Output.create(64,30,51,51,59,59,59,27,3,30,0,0);  // @
         do Output.create(63,30,51,51,24,12,12,0,12,12,0,0);  // ?
 
-        do Output.create(65,0,0,0,0,0,0,0,0,0,0,0);          // A ** TO BE FILLED **
+        do Output.create(65,12,30,51,51,63,51,51,51,51,0,0); // A
         do Output.create(66,31,51,51,51,31,51,51,51,31,0,0); // B
         do Output.create(67,28,54,35,3,3,3,35,54,28,0,0);    // C
         do Output.create(68,15,27,51,51,51,51,51,27,15,0,0); // D
@@ -176,28 +184,99 @@ class Output {
     /** Moves the cursor to the j-th column of the i-th row,
      *  and erases the character displayed there. */
     function void moveCursor(int i, int j) {
+      var int idx, ptr;
+
+      do Output.moveCursorNoClear(i, j);
+
+      let idx = 0;
+      let ptr = 16384 + (64 * row) + col;
+      while (idx < 11) {
+        do Memory.poke(ptr, 0);
+        let idx = idx + 1;
+        let ptr = ptr + 64;
+      }
+      return;
+    }
+
+    function void moveCursorNoClear(int i, int j) {
+      if ((i < 0) | (i > 22) | (j < 0) | (j > 63)) {
+        do Sys.error(20);
+      }
+
+      let row = i;
+      let col = j;
+      return;
     }
 
     /** Displays the given character at the cursor location,
      *  and advances the cursor one column forward. */
     function void printChar(char c) {
+      var int idx, ptr;
+      var Array bitMap;
+
+      if (c = String.newLine()) {
+        do Output.println();
+        return;
+      }
+
+      if (c = String.backSpace()) {
+        do Output.backSpace();
+        return;
+      }
+
+      let bitMap = charMaps[c];
+
+      let idx = 0;
+      let ptr = 16384 + (706 * row) + col;
+      while (idx < 11) {
+        do Memory.poke(ptr, bitMap[idx]);
+        let idx = idx + 1;
+        let ptr = ptr + 64;
+      }
+
+      if (col < 63) {
+        do Output.moveCursor(row, col + 1);
+      } else {
+        do Output.moveCursor(row + 1, col);
+      }
+      return;
     }
 
     /** displays the given string starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printString(String s) {
+      var int idx, len;
+
+      let idx = 0;
+      let len = s.length();
+
+      while (idx < len) {
+        do Output.printChar(s.charAt(idx));
+      }
+      return;
     }
 
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
+      var String str;
+
+      let str = String.new(5);
+      do str.setInt(i);
+      do Output.printString(str);
+      do str.dispose();
+      return;
     }
 
     /** Advances the cursor to the beginning of the next line. */
     function void println() {
+      do Output.moveCursor(row + 1, 0);
+      return;
     }
 
     /** Moves the cursor one column back. */
     function void backSpace() {
+      do Output.moveCursor(row, col - 1);
+      return;
     }
 }
